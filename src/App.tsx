@@ -19,15 +19,14 @@ import {
   RotateCcw,
   Eye,
   EyeOff,
-  Sun,
-  Moon,
   Mail,
   Phone,
   MapPin,
   Info,
   Target,
   Compass,
-  Heart
+  Heart,
+  MessageSquare
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -103,6 +102,29 @@ interface Memory {
   batch: string;
 }
 
+interface Inquiry {
+  id: number;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  created_at: string;
+}
+
+interface Suggestion {
+  id: number;
+  category: string;
+  content: string;
+  is_anonymous: boolean;
+  student_id?: number;
+  created_at: string;
+  students?: {
+    name: string;
+    year: string;
+    section: string;
+  };
+}
+
 interface HomeContent {
   id: number;
   section_key: string;
@@ -114,20 +136,20 @@ interface HomeContent {
 const Modal = ({ isOpen, onClose, children, title }: { isOpen: boolean, onClose: () => void, children: React.ReactNode, title: string }) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-md" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md" onClick={onClose}>
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative border border-slate-100 dark:border-slate-800"
+        className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative border border-slate-100"
         onClick={e => e.stopPropagation()}
       >
-        <div className="sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md px-10 py-6 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between z-10">
-          <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">{title}</h3>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-            <XCircle className="w-8 h-8 text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors" />
+        <div className="sticky top-0 bg-white/80 backdrop-blur-md px-10 py-6 border-b border-slate-50 flex items-center justify-between z-10">
+          <h3 className="text-2xl font-black text-slate-800 tracking-tight">{title}</h3>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+            <XCircle className="w-8 h-8 text-slate-400 hover:text-red-500 transition-colors" />
           </button>
         </div>
-        <div className="p-10 dark:text-slate-200">
+        <div className="p-10">
           {children}
         </div>
       </motion.div>
@@ -140,19 +162,194 @@ const HomeSection = ({ title, content, icon: Icon }: { title: string, content: s
     initial={{ opacity: 0, y: 20 }}
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true }}
-    className="flowy-card p-10 space-y-6"
+    className="flowy-card p-10 space-y-6 text-center"
   >
-    <div className="flex items-center gap-4">
-      <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl text-blue-800 dark:text-blue-400">
-        <Icon className="w-6 h-6" />
+    <div className="flex flex-col items-center gap-4">
+      <div className="p-3 bg-blue-50 rounded-2xl text-blue-800">
+        <Icon className="w-8 h-8" />
       </div>
-      <h3 className="text-3xl font-black text-blue-900 dark:text-white tracking-tight">{title}</h3>
+      <h3 className="text-3xl font-black text-blue-900 tracking-tight">{title}</h3>
     </div>
-    <div className="text-slate-500 dark:text-slate-400 font-bold leading-relaxed whitespace-pre-wrap text-lg">
+    <div className="text-slate-500 font-bold leading-relaxed whitespace-pre-wrap text-lg">
       {content}
     </div>
   </motion.div>
 );
+
+const ContactForm = () => {
+  const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus('loading');
+    try {
+      const res = await fetch('/api/inquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      if (res.ok) {
+        setStatus('success');
+        setFormData({ name: '', email: '', subject: '', message: '' });
+        setTimeout(() => setStatus('idle'), 5000);
+      } else {
+        setStatus('error');
+      }
+    } catch (err) {
+      setStatus('error');
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-8 space-y-4 text-left max-w-xl mx-auto bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <input 
+          type="text" 
+          placeholder="Your Name" 
+          required 
+          className="w-full px-6 py-3 rounded-2xl border border-slate-100 bg-slate-50 outline-none font-bold text-slate-700 focus:ring-4 focus:ring-blue-50 transition-all"
+          value={formData.name}
+          onChange={e => setFormData({...formData, name: e.target.value})}
+        />
+        <input 
+          type="email" 
+          placeholder="Email Address" 
+          required 
+          className="w-full px-6 py-3 rounded-2xl border border-slate-100 bg-slate-50 outline-none font-bold text-slate-700 focus:ring-4 focus:ring-blue-50 transition-all"
+          value={formData.email}
+          onChange={e => setFormData({...formData, email: e.target.value})}
+        />
+      </div>
+      <input 
+        type="text" 
+        placeholder="Subject" 
+        required 
+        className="w-full px-6 py-3 rounded-2xl border border-slate-100 bg-slate-50 outline-none font-bold text-slate-700 focus:ring-4 focus:ring-blue-50 transition-all"
+        value={formData.subject}
+        onChange={e => setFormData({...formData, subject: e.target.value})}
+      />
+      <textarea 
+        placeholder="Your Message" 
+        required 
+        rows={4}
+        className="w-full px-6 py-3 rounded-2xl border border-slate-100 bg-slate-50 outline-none font-bold text-slate-700 focus:ring-4 focus:ring-blue-50 transition-all resize-none"
+        value={formData.message}
+        onChange={e => setFormData({...formData, message: e.target.value})}
+      />
+      <button 
+        type="submit" 
+        disabled={status === 'loading'}
+        className="w-full flowy-button bg-blue-900 text-white disabled:opacity-50"
+      >
+        {status === 'loading' ? 'Sending...' : 'Send Message'}
+      </button>
+      {status === 'success' && <p className="text-emerald-600 font-bold text-center mt-2">Message sent successfully!</p>}
+      {status === 'error' && <p className="text-red-600 font-bold text-center mt-2">Failed to send message. Please try again.</p>}
+    </form>
+  );
+};
+
+const SuggestionsView = ({ studentId }: { studentId?: number }) => {
+  const [formData, setFormData] = useState({ category: 'General', content: '', is_anonymous: true });
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus('loading');
+    try {
+      const res = await fetch('/api/suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, student_id: studentId })
+      });
+      if (res.ok) {
+        setStatus('success');
+        setFormData({ category: 'General', content: '', is_anonymous: true });
+        setTimeout(() => setStatus('idle'), 5000);
+      } else {
+        setStatus('error');
+      }
+    } catch (err) {
+      setStatus('error');
+    }
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto">
+      <div className="text-center mb-16">
+        <h2 className="text-6xl font-sans font-black text-blue-900 tracking-tight">Student Suggestion Box</h2>
+        <div className="h-1.5 w-40 bg-red-600 mx-auto mt-6 rounded-full" />
+        <p className="mt-8 text-slate-500 font-bold text-lg">Your voice matters! Share your ideas, concerns, or suggestions with the council.</p>
+      </div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flowy-card p-10"
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-sm font-black text-slate-400 uppercase tracking-widest">Category</label>
+            <select 
+              className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 outline-none font-bold text-slate-700 focus:ring-4 focus:ring-blue-50 transition-all"
+              value={formData.category}
+              onChange={e => setFormData({...formData, category: e.target.value})}
+            >
+              <option value="General">General Suggestion</option>
+              <option value="Facilities">School Facilities</option>
+              <option value="Events">Events & Activities</option>
+              <option value="Academic">Academic Concerns</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-black text-slate-400 uppercase tracking-widest">Your Suggestion</label>
+            <textarea 
+              required
+              rows={6}
+              placeholder="What's on your mind?"
+              className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 outline-none font-bold text-slate-700 focus:ring-4 focus:ring-blue-50 transition-all resize-none"
+              value={formData.content}
+              onChange={e => setFormData({...formData, content: e.target.value})}
+            />
+          </div>
+
+          <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+            <input 
+              type="checkbox" 
+              id="anonymous"
+              className="w-5 h-5 rounded-lg text-blue-900 focus:ring-blue-900"
+              checked={formData.is_anonymous}
+              onChange={e => setFormData({...formData, is_anonymous: e.target.checked})}
+            />
+            <label htmlFor="anonymous" className="text-sm font-bold text-slate-600 cursor-pointer">Submit anonymously</label>
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={status === 'loading'}
+            className="w-full flowy-button bg-blue-900 text-white disabled:opacity-50"
+          >
+            {status === 'loading' ? 'Submitting...' : 'Submit Suggestion'}
+          </button>
+          
+          {status === 'success' && (
+            <motion.p 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-emerald-600 font-bold text-center bg-emerald-50 p-4 rounded-2xl border border-emerald-100"
+            >
+              Thank you! Your suggestion has been submitted.
+            </motion.p>
+          )}
+          {status === 'error' && <p className="text-red-600 font-bold text-center">Something went wrong. Please try again.</p>}
+        </form>
+      </motion.div>
+    </div>
+  );
+};
 
 const HomeView = ({ content }: { content: HomeContent[] }) => {
   const getIcon = (key: string) => {
@@ -169,18 +366,20 @@ const HomeView = ({ content }: { content: HomeContent[] }) => {
   return (
     <div className="max-w-5xl mx-auto space-y-12 pb-20">
       <div className="text-center mb-16">
-        <h2 className="text-6xl font-sans font-black text-blue-900 dark:text-white tracking-tight">Welcome to ARSC</h2>
+        <h2 className="text-6xl font-sans font-black text-blue-900 tracking-tight">Welcome to ARSC</h2>
         <div className="h-1.5 w-40 bg-red-600 mx-auto mt-6 rounded-full" />
       </div>
 
       <div className="grid gap-10">
         {content.map((section) => (
-          <HomeSection 
-            key={section.id} 
-            title={section.title} 
-            content={section.content} 
-            icon={getIcon(section.section_key)} 
-          />
+          <div key={section.id}>
+            <HomeSection 
+              title={section.title} 
+              content={section.content} 
+              icon={getIcon(section.section_key)} 
+            />
+            {section.section_key === 'contact_info' && <ContactForm />}
+          </div>
         ))}
       </div>
     </div>
@@ -217,28 +416,28 @@ const NewsItem = ({ item, isAdmin, onDelete, onEdit }: { item: News, isAdmin: bo
         )}
         <div className={cn(
           "p-10 flex-1 flex flex-col justify-center",
-          isExpanded && "bg-white dark:bg-slate-900"
+          isExpanded && "bg-white"
         )}>
           <div className="flex items-center justify-between mb-4">
-            <div className="text-[10px] text-blue-800 dark:text-blue-400 font-black uppercase tracking-[0.2em]">{item.date}</div>
+            <div className="text-[10px] text-blue-800 font-black uppercase tracking-[0.2em]">{item.date}</div>
             {isAdmin && (
               <div className="flex gap-2" onClick={e => e.stopPropagation()}>
                 <button 
                   onClick={onEdit}
-                  className="p-2 bg-blue-50 dark:bg-slate-800 text-blue-800 dark:text-blue-400 rounded-xl hover:bg-blue-800 dark:hover:bg-blue-600 hover:text-white transition-all"
+                  className="p-2 bg-blue-50 text-blue-800 rounded-xl hover:bg-blue-800 hover:text-white transition-all"
                 >
                   <Settings className="w-4 h-4" />
                 </button>
                 <button 
                   onClick={onDelete}
-                  className="p-2 bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 rounded-xl hover:bg-red-500 dark:hover:bg-red-600 hover:text-white transition-all"
+                  className="p-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all"
                 >
                   <XCircle className="w-4 h-4" />
                 </button>
               </div>
             )}
           </div>
-          <h3 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight mb-4">{item.title}</h3>
+          <h3 className="text-3xl font-black text-slate-800 tracking-tight mb-4">{item.title}</h3>
           <AnimatePresence>
             {isExpanded ? (
               <motion.div
@@ -316,7 +515,7 @@ const Intro = ({ onComplete, logo }: { onComplete: () => void, logo?: string }) 
   );
 };
 
-const Login = ({ onLogin, logos, darkMode, setDarkMode }: { onLogin: (role: 'admin' | 'student', data?: any) => void, logos: { logo1: string, logo2: string }, darkMode: boolean, setDarkMode: (v: boolean) => void }) => {
+const Login = ({ onLogin, logos }: { onLogin: (role: 'admin' | 'student', data?: any) => void, logos: { logo1: string, logo2: string } }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -343,20 +542,11 @@ const Login = ({ onLogin, logos, darkMode, setDarkMode }: { onLogin: (role: 'adm
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-blue-50 dark:bg-slate-950 p-4 relative overflow-hidden transition-colors duration-300">
+    <div className="min-h-screen flex items-center justify-center bg-blue-50 p-4 relative overflow-hidden">
       {/* Decorative background blobs */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-200/50 dark:bg-blue-900/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-300/30 dark:bg-blue-800/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-      </div>
-
-      <div className="absolute top-8 right-8">
-        <button
-          onClick={() => setDarkMode(!darkMode)}
-          className="p-3 rounded-2xl bg-white dark:bg-slate-900 shadow-sm border border-slate-100 dark:border-slate-800 text-slate-400 hover:text-blue-800 dark:hover:text-blue-400 transition-all duration-300"
-        >
-          {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-        </button>
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-200/50 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-300/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
       </div>
 
       <motion.div 
@@ -379,7 +569,7 @@ const Login = ({ onLogin, logos, darkMode, setDarkMode }: { onLogin: (role: 'adm
             )}
             <div className="flex flex-col items-center shrink-0">
               <motion.h1 
-                className="text-2xl md:text-3xl font-sans font-black text-blue-900 dark:text-white mb-1 tracking-tighter whitespace-nowrap"
+                className="text-2xl md:text-3xl font-sans font-black text-blue-900 mb-1 tracking-tighter whitespace-nowrap"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
@@ -405,15 +595,15 @@ const Login = ({ onLogin, logos, darkMode, setDarkMode }: { onLogin: (role: 'adm
               />
             )}
           </div>
-          <p className="text-slate-400 dark:text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px] mt-4">Student Council Portal</p>
+          <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px] mt-4">Student Council Portal</p>
         </div>
 
-        <div className="flex mb-8 bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl">
+        <div className="flex mb-8 bg-slate-100 p-1.5 rounded-2xl">
           <button 
             onClick={() => setIsAdmin(false)}
             className={cn(
               "flex-1 py-2.5 rounded-xl text-sm font-bold transition-all",
-              !isAdmin ? "bg-white dark:bg-slate-700 shadow-md text-blue-800 dark:text-white" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              !isAdmin ? "bg-white shadow-md text-blue-800" : "text-slate-500 hover:text-slate-700"
             )}
           >
             Student
@@ -422,7 +612,7 @@ const Login = ({ onLogin, logos, darkMode, setDarkMode }: { onLogin: (role: 'adm
             onClick={() => setIsAdmin(true)}
             className={cn(
               "flex-1 py-2.5 rounded-xl text-sm font-bold transition-all",
-              isAdmin ? "bg-white dark:bg-slate-700 shadow-md text-blue-800 dark:text-white" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+              isAdmin ? "bg-white shadow-md text-blue-800" : "text-slate-500 hover:text-slate-700"
             )}
           >
             Admin
@@ -431,7 +621,7 @@ const Login = ({ onLogin, logos, darkMode, setDarkMode }: { onLogin: (role: 'adm
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">
+            <label className="block text-sm font-bold text-slate-700 ml-1">
               {isAdmin ? "Admin Password" : "Student Number"}
             </label>
             <div className="relative">
@@ -439,14 +629,14 @@ const Login = ({ onLogin, logos, darkMode, setDarkMode }: { onLogin: (role: 'adm
                 type={showPassword ? "text" : "password"} 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-5 py-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 focus:border-blue-900 dark:focus:border-blue-500 outline-none transition-all text-slate-700 dark:text-slate-100"
+                className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-white/50 focus:ring-4 focus:ring-blue-100 focus:border-blue-900 outline-none transition-all text-slate-700"
                 placeholder={isAdmin ? "Enter admin password" : "Enter your student number"}
                 required
               />
               <button 
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-slate-400 dark:text-slate-500 hover:text-blue-800 dark:hover:text-blue-400 transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-blue-800 transition-colors"
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -456,14 +646,14 @@ const Login = ({ onLogin, logos, darkMode, setDarkMode }: { onLogin: (role: 'adm
             <motion.p 
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              className="text-red-500 dark:text-red-400 text-xs font-bold ml-1"
+              className="text-red-500 text-xs font-bold ml-1"
             >
               {error}
             </motion.p>
           )}
           <button 
             type="submit"
-            className="w-full flowy-button bg-blue-800 dark:bg-blue-600 text-white hover:bg-blue-900 dark:hover:bg-blue-700"
+            className="w-full flowy-button bg-blue-800 text-white hover:bg-blue-900"
           >
             Login
           </button>
@@ -498,9 +688,9 @@ const ProfileSetup = ({ student, onComplete }: { student: Student, onComplete: (
   const filteredSections = availableSections.filter(s => s.year === year);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-blue-50 dark:bg-slate-950 p-4 relative overflow-hidden transition-colors duration-300">
+    <div className="min-h-screen flex items-center justify-center bg-blue-50 p-4 relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
-        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-blue-200/40 dark:bg-blue-900/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-blue-200/40 rounded-full blur-3xl animate-pulse" />
       </div>
 
       <motion.div 
@@ -508,22 +698,22 @@ const ProfileSetup = ({ student, onComplete }: { student: Student, onComplete: (
         animate={{ opacity: 1, scale: 1 }}
         className="flowy-card p-10 w-full max-w-md"
       >
-        <h2 className="text-3xl font-sans font-black text-blue-900 dark:text-white mb-8 tracking-tight">Complete Your Profile</h2>
+        <h2 className="text-3xl font-sans font-black text-blue-900 mb-8 tracking-tight">Complete Your Profile</h2>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Full Name</label>
+            <label className="block text-sm font-bold text-slate-700 ml-1">Full Name</label>
             <input 
               value={name} onChange={e => setName(e.target.value)}
-              className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 focus:border-blue-500 dark:focus:border-blue-500 outline-none transition-all font-bold text-slate-700 dark:text-slate-100" 
+              className="w-full px-5 py-3 rounded-2xl border border-slate-200 bg-white/50 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" 
               required
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Year Level</label>
+              <label className="block text-sm font-bold text-slate-700 ml-1">Year Level</label>
               <select 
                 value={year} onChange={e => { setYear(e.target.value); setSection(''); }}
-                className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 focus:border-blue-500 dark:focus:border-blue-500 outline-none transition-all font-bold text-slate-700 dark:text-slate-100" 
+                className="w-full px-5 py-3 rounded-2xl border border-slate-200 bg-white/50 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" 
                 required
               >
                 <option value="">Select Year</option>
@@ -540,10 +730,10 @@ const ProfileSetup = ({ student, onComplete }: { student: Student, onComplete: (
               </select>
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Section</label>
+              <label className="block text-sm font-bold text-slate-700 ml-1">Section</label>
               <select 
                 value={section} onChange={e => setSection(e.target.value)}
-                className="w-full px-5 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 focus:border-blue-500 dark:focus:border-blue-500 outline-none transition-all font-bold text-slate-700 dark:text-slate-100" 
+                className="w-full px-5 py-3 rounded-2xl border border-slate-200 bg-white/50 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" 
                 required
                 disabled={!year}
               >
@@ -559,7 +749,7 @@ const ProfileSetup = ({ student, onComplete }: { student: Student, onComplete: (
           </div>
           <button 
             type="submit"
-            className="w-full flowy-button bg-blue-900 dark:bg-blue-600 text-white"
+            className="w-full flowy-button bg-blue-900 text-white"
           >
             Complete Setup
           </button>
@@ -632,6 +822,8 @@ export default function App() {
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [memories, setMemories] = useState<Memory[]>([]);
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
   const [partylists, setPartylists] = useState<Partylist[]>([]);
   const [votingRestriction, setVotingRestriction] = useState('everyone');
@@ -641,23 +833,12 @@ export default function App() {
   const [editingMemory, setEditingMemory] = useState<Memory | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') === 'dark' || 
-        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    }
-    return false;
-  });
 
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [darkMode]);
+    // Ensure light mode is always active
+    document.documentElement.classList.remove('dark');
+    localStorage.setItem('theme', 'light');
+  }, []);
 
   useEffect(() => {
     // Fetch logos and settings immediately
@@ -689,7 +870,7 @@ export default function App() {
 
   const fetchData = async () => {
     try {
-      const [homeRes, newsRes, offRes, candRes, memRes, termRes, partyRes, setRes, statRes] = await Promise.all([
+      const [homeRes, newsRes, offRes, candRes, memRes, termRes, partyRes, setRes, statRes, inqRes, sugRes] = await Promise.all([
         fetch('/api/home-content'),
         fetch('/api/news'),
         fetch('/api/officers'),
@@ -698,7 +879,9 @@ export default function App() {
         fetch('/api/terms'),
         fetch('/api/partylists'),
         fetch('/api/settings'),
-        fetch('/api/voting-stats')
+        fetch('/api/voting-stats'),
+        fetch('/api/inquiries'),
+        fetch('/api/suggestions')
       ]);
 
       const checkRes = async (res: Response, name: string) => {
@@ -710,7 +893,7 @@ export default function App() {
         return res.json();
       };
 
-      const [homeData, newsData, offData, candData, memData, termData, partyData, setData, statData] = await Promise.all([
+      const [homeData, newsData, offData, candData, memData, termData, partyData, setData, statData, inqData, sugData] = await Promise.all([
         checkRes(homeRes, 'home'),
         checkRes(newsRes, 'news'),
         checkRes(offRes, 'officers'),
@@ -719,7 +902,9 @@ export default function App() {
         checkRes(termRes, 'terms'),
         checkRes(partyRes, 'partylists'),
         checkRes(setRes, 'settings'),
-        checkRes(statRes, 'stats')
+        checkRes(statRes, 'stats'),
+        checkRes(inqRes, 'inquiries'),
+        checkRes(sugRes, 'suggestions')
       ]);
 
       setHomeContent(homeData);
@@ -732,6 +917,8 @@ export default function App() {
       setLogos({ logo1: setData.logo1, logo2: setData.logo2 });
       setVotingRestriction(setData.voting_restriction);
       setStats(statData);
+      setInquiries(inqData);
+      setSuggestions(sugData);
     } catch (err) {
       console.error('Error fetching data:', err);
     }
@@ -744,7 +931,7 @@ export default function App() {
   };
 
   if (showIntro) return <Intro onComplete={() => setShowIntro(false)} logo={logos.logo2 || undefined} />;
-  if (!role) return <Login onLogin={(r, u) => { setRole(r); setUser(u); }} logos={logos} darkMode={darkMode} setDarkMode={setDarkMode} />;
+  if (!role) return <Login onLogin={(r, u) => { setRole(r); setUser(u); }} logos={logos} />;
   if (role === 'student' && user && (!user.name || !user.year)) {
     return <ProfileSetup student={user} onComplete={setUser} />;
   }
@@ -752,75 +939,92 @@ export default function App() {
   const isAdmin = role === 'admin';
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col transition-colors duration-300">
-      {/* Header */}
-      <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 px-8 py-6 flex items-center justify-between sticky top-0 z-40">
-          <div className="flex items-center gap-5">
-            {logos.logo1 && <img src={logos.logo1} alt="Logo 1" className="h-12 w-12 object-contain" referrerPolicy="no-referrer" />}
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* Navigation Bar */}
+      <header className="bg-white/90 backdrop-blur-md border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
+        <div className="flex items-center gap-8">
+          <div className="flex items-center gap-4">
+            {logos.logo1 && <img src={logos.logo1} alt="Logo 1" className="h-10 w-10 object-contain" referrerPolicy="no-referrer" />}
             <div>
-              <h1 className="text-2xl font-sans font-black text-blue-900 dark:text-white leading-none tracking-tight">ARSC - IHMA</h1>
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em] mt-1.5 font-black">Student Council</p>
+              <h1 className="text-xl font-sans font-black text-blue-900 leading-none tracking-tight">ARSC - IHMA</h1>
+              <p className="text-[8px] text-slate-400 uppercase tracking-[0.3em] mt-1 font-black">Student Council</p>
             </div>
-            {logos.logo2 && <img src={logos.logo2} alt="Logo 2" className="h-12 w-12 object-contain" referrerPolicy="no-referrer" />}
           </div>
+
+          <nav className="hidden lg:flex items-center gap-1">
+            {[
+              { id: 'home', label: 'Home', icon: Home },
+              { id: 'news', label: 'News', icon: Newspaper },
+              { id: 'officers', label: 'Officers', icon: Users },
+              { id: 'memories', label: 'Memories', icon: History },
+              { id: 'voting', label: 'Voting', icon: Vote },
+              { id: 'suggestions', label: 'Suggestions', icon: MessageSquare },
+              ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: Settings }] : [])
+            ].map(item => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={cn(
+                  "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all duration-300",
+                  activeTab === item.id 
+                    ? "bg-blue-900 text-white shadow-md" 
+                    : "text-slate-400 hover:bg-slate-50 hover:text-blue-800"
+                )}
+              >
+                <item.icon className={cn("w-4 h-4", activeTab === item.id ? "text-white" : "text-slate-300")} />
+                {item.label}
+              </button>
+            ))}
+          </nav>
+        </div>
         
-        <div className="flex items-center gap-6">
-          <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-900/30">
+        <div className="flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-blue-50 rounded-2xl border border-blue-100">
             <UserCircle className="w-5 h-5 text-blue-500" />
-            <span className="text-sm font-bold text-blue-900 dark:text-blue-100">
+            <span className="text-sm font-bold text-blue-900">
               {isAdmin ? 'Administrator' : user?.name}
             </span>
           </div>
           <button 
             onClick={() => { setRole(null); setUser(null); }}
-            className="p-2.5 hover:bg-blue-50 dark:hover:bg-slate-800 hover:text-blue-500 dark:hover:text-blue-400 rounded-2xl text-slate-400 transition-all active:scale-90"
+            className="p-2.5 hover:bg-red-50 hover:text-red-500 rounded-2xl text-slate-400 transition-all active:scale-90"
+            title="Logout"
           >
             <LogOut className="w-6 h-6" />
           </button>
         </div>
       </header>
 
-      <div className="flex-1 flex flex-col md:flex-row">
-        {/* Sidebar */}
-        <nav className="w-full md:w-80 bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 p-8 space-y-4 flex flex-col">
-          <div className="flex-1 space-y-4">
-            {[
-              { id: 'home', label: 'Home', icon: Home },
-              { id: 'news', label: 'News & Events', icon: Newspaper },
-              { id: 'officers', label: 'ARSC Officers', icon: Users },
-              { id: 'memories', label: 'Hall of Memories', icon: History },
-              { id: 'voting', label: 'Voting Portal', icon: Vote },
-              ...(isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: Settings }] : [])
-            ].map(item => (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={cn(
-                  "w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-sm font-black transition-all duration-300",
-                  activeTab === item.id 
-                    ? "bg-blue-900 text-white shadow-lg shadow-blue-100 dark:shadow-none" 
-                    : "text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-blue-800 dark:hover:text-blue-400"
-                )}
-              >
-                <item.icon className={cn("w-5 h-5", activeTab === item.id ? "text-white" : "text-slate-300 dark:text-slate-600")} />
-                {item.label}
-              </button>
-            ))}
-          </div>
+      {/* Mobile Navigation */}
+      <nav className="lg:hidden bg-white border-b border-slate-100 px-4 py-2 flex overflow-x-auto no-scrollbar gap-2 sticky top-[73px] z-30">
+        {[
+          { id: 'home', label: 'Home', icon: Home },
+          { id: 'news', label: 'News', icon: Newspaper },
+          { id: 'officers', label: 'Officers', icon: Users },
+          { id: 'memories', label: 'Memories', icon: History },
+          { id: 'voting', label: 'Voting', icon: Vote },
+          { id: 'suggestions', label: 'Suggestions', icon: MessageSquare },
+          ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: Settings }] : [])
+        ].map(item => (
+          <button
+            key={item.id}
+            onClick={() => setActiveTab(item.id)}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all whitespace-nowrap",
+              activeTab === item.id 
+                ? "bg-blue-900 text-white shadow-sm" 
+                : "text-slate-400 hover:bg-slate-50 hover:text-blue-800"
+            )}
+          >
+            <item.icon className="w-3.5 h-3.5" />
+            {item.label}
+          </button>
+        ))}
+      </nav>
 
-          <div className="pt-8 border-t border-slate-100 dark:border-slate-800">
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-sm font-black text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-blue-800 dark:hover:text-blue-400 transition-all duration-300"
-            >
-              {darkMode ? <Sun className="w-5 h-5 text-slate-300 dark:text-slate-600" /> : <Moon className="w-5 h-5 text-slate-300" />}
-              {darkMode ? 'Light Mode' : 'Dark Mode'}
-            </button>
-          </div>
-        </nav>
-
+      <div className="flex-1 flex flex-col">
         {/* Main Content */}
-        <main className="flex-1 p-8 overflow-y-auto">
+        <main className="flex-1 p-6 md:p-10 overflow-y-auto">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -836,7 +1040,7 @@ export default function App() {
               {activeTab === 'news' && (
                 <div className="max-w-5xl mx-auto">
                   <div className="text-center mb-16">
-                    <h2 className="text-6xl font-sans font-black text-blue-900 dark:text-white tracking-tight">News & Events</h2>
+                    <h2 className="text-6xl font-sans font-black text-blue-900 tracking-tight">News & Events</h2>
                     <div className="h-1.5 w-40 bg-red-600 mx-auto mt-6 rounded-full" />
                   </div>
 
@@ -845,11 +1049,11 @@ export default function App() {
                       <input 
                         type="text" 
                         placeholder="Search news..." 
-                        className="w-full pl-12 pr-6 py-4 rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 focus:ring-4 focus:ring-blue-50 dark:focus:ring-blue-900/20 outline-none font-bold text-slate-700 dark:text-slate-200"
+                        className="w-full pl-12 pr-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 outline-none font-bold text-slate-700"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                       />
-                      <Newspaper className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 dark:text-slate-600" />
+                      <Newspaper className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                     </div>
                     {isAdmin && (
                       <button 
@@ -888,7 +1092,7 @@ export default function App() {
               {activeTab === 'officers' && (
                 <div className="max-w-6xl mx-auto">
                   <div className="text-center mb-16">
-                    <h2 className="text-6xl font-sans font-black text-blue-900 dark:text-white tracking-tight">ARSC Officers</h2>
+                    <h2 className="text-6xl font-sans font-black text-blue-900 tracking-tight">ARSC Officers</h2>
                     <div className="h-1.5 w-40 bg-red-600 mx-auto mt-6 rounded-full" />
                   </div>
 
@@ -917,8 +1121,8 @@ export default function App() {
                         return (
                           <div key={cat} className="space-y-10">
                             <div className="flex items-center gap-6">
-                              <h3 className="text-4xl font-black text-blue-900 dark:text-white tracking-tight">{cat}</h3>
-                              <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
+                              <h3 className="text-4xl font-black text-blue-900 tracking-tight">{cat}</h3>
+                              <div className="h-px flex-1 bg-slate-100" />
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
                               {catOfficers.map(officer => (
@@ -944,20 +1148,20 @@ export default function App() {
                                     </div>
                                   )}
                                   <div 
-                                    className="mx-auto mb-8 rounded-3xl overflow-hidden border-4 border-slate-50 dark:border-slate-800 p-1 group-hover:border-blue-400 transition-all duration-500 inline-block cursor-zoom-in"
+                                    className="mx-auto mb-8 rounded-3xl overflow-hidden border-4 border-slate-50 p-1 group-hover:border-blue-400 transition-all duration-500 inline-block cursor-zoom-in"
                                     onClick={() => officer.image_url && setZoomedImage(officer.image_url)}
                                   >
                                     {officer.image_url ? (
                                       <img src={officer.image_url} className="max-w-full h-auto rounded-2xl max-h-64" referrerPolicy="no-referrer" />
                                     ) : (
-                                      <div className="w-48 h-48 bg-slate-50 dark:bg-slate-800 flex items-center justify-center rounded-2xl">
-                                        <Users className="w-12 h-12 text-slate-200 dark:text-slate-700" />
+                                      <div className="w-48 h-48 bg-slate-50 flex items-center justify-center rounded-2xl">
+                                        <Users className="w-12 h-12 text-slate-200" />
                                       </div>
                                     )}
                                   </div>
-                                  <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">{officer.name}</h3>
-                                  <p className="text-blue-800 dark:text-blue-400 font-black uppercase text-[10px] tracking-[0.2em] mt-3">{officer.position}</p>
-                                  <p className="text-slate-400 dark:text-slate-500 text-sm mt-2 font-medium">{officer.year}</p>
+                                  <h3 className="text-2xl font-black text-slate-800 tracking-tight">{officer.name}</h3>
+                                  <p className="text-blue-800 font-black uppercase text-[10px] tracking-[0.2em] mt-3">{officer.position}</p>
+                                  <p className="text-slate-400 text-sm mt-2 font-medium">{officer.year}</p>
                                 </motion.div>
                               ))}
                             </div>
@@ -972,7 +1176,7 @@ export default function App() {
               {activeTab === 'memories' && (
                 <div className="max-w-6xl mx-auto">
                   <div className="text-center mb-16">
-                    <h2 className="text-6xl font-sans font-black text-blue-900 dark:text-white tracking-tight">Hall of Memories</h2>
+                    <h2 className="text-6xl font-sans font-black text-blue-900 tracking-tight">Hall of Memories</h2>
                     <div className="h-1.5 w-40 bg-red-600 mx-auto mt-6 rounded-full" />
                   </div>
 
@@ -1005,13 +1209,13 @@ export default function App() {
                             <div className="absolute top-6 right-6 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                               <button 
                                 onClick={() => setEditingMemory(memory)}
-                                className="p-2.5 bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded-full hover:bg-blue-600 hover:text-white transition-all"
+                                className="p-2.5 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-600 hover:text-white transition-all"
                               >
                                 <Settings className="w-5 h-5" />
                               </button>
                               <button 
                                 onClick={() => handleDelete('memories', memory.id)}
-                                className="p-2.5 bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 rounded-full hover:bg-red-500 hover:text-white transition-all"
+                                className="p-2.5 bg-red-50 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all"
                               >
                                 <XCircle className="w-5 h-5" />
                               </button>
@@ -1024,14 +1228,14 @@ export default function App() {
                                 {memory.image_url ? (
                                   <img src={memory.image_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
                                 ) : (
-                                  <div className="w-full h-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
-                                    <History className="w-12 h-12 text-slate-200 dark:text-slate-700" />
+                                  <div className="w-full h-full bg-slate-50 flex items-center justify-center">
+                                    <History className="w-12 h-12 text-slate-200" />
                                   </div>
                                 )}
                               </div>
                           <div className="p-8 text-center">
-                            <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">{memory.caption}</h3>
-                            <p className="text-blue-800 dark:text-blue-400 font-black uppercase text-[10px] tracking-[0.2em] mt-3">Batch {memory.batch}</p>
+                            <h3 className="text-2xl font-black text-slate-800 tracking-tight">{memory.caption}</h3>
+                            <p className="text-blue-800 font-black uppercase text-[10px] tracking-[0.2em] mt-3">Batch {memory.batch}</p>
                           </div>
                         </motion.div>
                       ))}
@@ -1066,6 +1270,10 @@ export default function App() {
                 </div>
               )}
 
+              {activeTab === 'suggestions' && (
+                <SuggestionsView studentId={user?.id} />
+              )}
+
               {activeTab === 'admin' && isAdmin && (
                 <AdminPanel 
                   onUpdate={fetchData} 
@@ -1080,6 +1288,8 @@ export default function App() {
                   setEditingMemory={setEditingMemory}
                   fetchData={fetchData}
                   homeContent={homeContent}
+                  inquiries={inquiries}
+                  suggestions={suggestions}
                 />
               )}
             </motion.div>
@@ -1167,7 +1377,7 @@ const HomeManager = ({ content, onUpdate }: { content: HomeContent[], onUpdate: 
   return (
     <div className="space-y-10">
       <div className="flex items-center justify-between">
-        <h3 className="text-3xl font-black text-blue-900 dark:text-white tracking-tight">Home Page Content</h3>
+        <h3 className="text-3xl font-black text-blue-900 tracking-tight">Home Page Content</h3>
         <button 
           onClick={() => setEditing({ title: '', content: '' })}
           className="flowy-button bg-blue-900 text-white flex items-center gap-2"
@@ -1180,13 +1390,13 @@ const HomeManager = ({ content, onUpdate }: { content: HomeContent[], onUpdate: 
         {content.map(section => (
           <div key={section.id} className="flowy-card p-8 flex items-center justify-between group">
             <div className="space-y-2">
-              <h4 className="text-xl font-black text-blue-900 dark:text-white">{section.title}</h4>
+              <h4 className="text-xl font-black text-blue-900">{section.title}</h4>
               <p className="text-slate-400 font-bold text-sm line-clamp-1">{section.content}</p>
             </div>
             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
               <button 
                 onClick={() => setEditing(section)}
-                className="p-2 bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-600 hover:text-white transition-all"
+                className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"
               >
                 <Settings className="w-5 h-5" />
               </button>
@@ -1197,7 +1407,7 @@ const HomeManager = ({ content, onUpdate }: { content: HomeContent[], onUpdate: 
                     onUpdate();
                   }
                 }}
-                className="p-2 bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 rounded-xl hover:bg-red-600 hover:text-white transition-all"
+                className="p-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-600 hover:text-white transition-all"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -1213,21 +1423,21 @@ const HomeManager = ({ content, onUpdate }: { content: HomeContent[], onUpdate: 
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Section Title</label>
+            <label className="block text-sm font-bold text-slate-700">Section Title</label>
             <input 
               type="text" 
               value={editing?.title || ''}
               onChange={e => setEditing({ ...editing, title: e.target.value })}
-              className="w-full px-5 py-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 outline-none transition-all text-slate-700 dark:text-slate-100"
+              className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-white/50 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-slate-700"
               required
             />
           </div>
           <div className="space-y-2">
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Content</label>
+            <label className="block text-sm font-bold text-slate-700">Content</label>
             <textarea 
               value={editing?.content || ''}
               onChange={e => setEditing({ ...editing, content: e.target.value })}
-              className="w-full px-5 py-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800 focus:ring-4 focus:ring-blue-100 dark:focus:ring-blue-900/20 outline-none transition-all text-slate-700 dark:text-slate-100 min-h-[200px]"
+              className="w-full px-5 py-4 rounded-2xl border border-slate-200 bg-white/50 focus:ring-4 focus:ring-blue-100 outline-none transition-all text-slate-700 min-h-[200px]"
               required
             />
           </div>
@@ -1272,13 +1482,13 @@ const VotingForm = ({ candidates, user, restriction, onVote, isAdmin, partylists
       {partylistPlatforms.length > 0 && (
         <div className="space-y-6">
           <div className="text-center">
-            <h3 className="text-2xl font-black text-blue-900 dark:text-white tracking-tight">Partylist Platforms</h3>
+            <h3 className="text-2xl font-black text-blue-900 tracking-tight">Partylist Platforms</h3>
             <div className="h-1 w-12 bg-red-600 mx-auto mt-2 rounded-full" />
           </div>
           <div className="grid gap-6">
             {partylistPlatforms.map((p) => (
               <div key={p.id} className="flowy-card overflow-hidden">
-                <div className="bg-blue-800 dark:bg-blue-900 px-6 py-3 text-white font-black tracking-tight">{p.name} Platform</div>
+                <div className="bg-blue-800 px-6 py-3 text-white font-black tracking-tight">{p.name} Platform</div>
                 <img src={p.platform_image_url} className="w-full h-auto" referrerPolicy="no-referrer" />
               </div>
             ))}
@@ -1288,9 +1498,9 @@ const VotingForm = ({ candidates, user, restriction, onVote, isAdmin, partylists
 
       {/* Voting Sections */}
       {eligibleCandidates.length === 0 ? (
-        <div className="flowy-card p-20 text-center border-dashed border-2 border-slate-100 dark:border-slate-800">
-          <Vote className="w-16 h-16 text-blue-100 dark:text-blue-900/30 mx-auto mb-6" />
-          <p className="text-slate-400 dark:text-slate-500 text-xl font-bold">No eligible candidates found for your grade level.</p>
+        <div className="flowy-card p-20 text-center border-dashed border-2 border-slate-100">
+          <Vote className="w-16 h-16 text-blue-100 mx-auto mb-6" />
+          <p className="text-slate-400 text-xl font-bold">No eligible candidates found for your grade level.</p>
         </div>
       ) : (
         categories.map(cat => {
@@ -1379,7 +1589,9 @@ const AdminPanel = ({
   editingMemory,
   setEditingMemory,
   fetchData,
-  homeContent
+  homeContent,
+  inquiries,
+  suggestions
 }: { 
   onUpdate: () => void, 
   logos: any, 
@@ -1392,7 +1604,9 @@ const AdminPanel = ({
   editingMemory: Memory | null,
   setEditingMemory: (m: Memory | null) => void,
   fetchData: () => void,
-  homeContent: HomeContent[]
+  homeContent: HomeContent[],
+  inquiries: Inquiry[],
+  suggestions: Suggestion[]
 }) => {
   const [activeSubTab, setActiveSubTab] = useState('news');
   const [showResultPresenter, setShowResultPresenter] = useState(false);
@@ -1419,18 +1633,18 @@ const AdminPanel = ({
 
   return (
     <div className="max-w-6xl mx-auto">
-      <h2 className="text-6xl font-sans font-black text-blue-900 dark:text-white text-center mb-16 tracking-tight">Admin Dashboard</h2>
+      <h2 className="text-6xl font-sans font-black text-blue-900 text-center mb-16 tracking-tight">Admin Dashboard</h2>
       
       <div className="flex gap-4 mb-12 overflow-x-auto pb-4 no-scrollbar justify-center">
-        {['home', 'positions', 'voting', 'students', 'sections', 'settings'].map(tab => (
+        {['home', 'positions', 'voting', 'students', 'sections', 'inquiries', 'suggestions', 'settings'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveSubTab(tab)}
             className={cn(
               "px-8 py-4 rounded-2xl text-sm font-black capitalize transition-all whitespace-nowrap",
               activeSubTab === tab 
-                ? "bg-blue-900 dark:bg-blue-600 text-white shadow-lg shadow-blue-100 dark:shadow-none" 
-                : "bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 border border-slate-100 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-800 hover:text-blue-800 dark:hover:text-blue-400"
+                ? "bg-blue-900 text-white shadow-lg shadow-blue-100" 
+                : "bg-white text-slate-400 border border-slate-100 hover:border-blue-300 hover:text-blue-800"
             )}
           >
             {tab}
@@ -1447,7 +1661,7 @@ const AdminPanel = ({
               <TermManager onUpdate={onUpdate} />
               <PartylistManager onUpdate={onUpdate} />
             </div>
-            <div className="border-t border-slate-100 dark:border-slate-800 pt-10">
+            <div className="border-t border-slate-100 pt-10">
               <AddCandidate onComplete={onUpdate} />
             </div>
             {stats && (
@@ -1712,6 +1926,92 @@ const AdminPanel = ({
           </div>
         )}
         {activeSubTab === 'sections' && <SectionManager onUpdate={onUpdate} />}
+        {activeSubTab === 'inquiries' && (
+          <div className="space-y-6">
+            <h3 className="text-3xl font-black text-slate-800 tracking-tight">Student Inquiries</h3>
+            <div className="grid gap-6">
+              {inquiries.length === 0 ? (
+                <div className="p-24 text-center border-dashed border-2 border-slate-100 rounded-[2.5rem]">
+                  <Mail className="w-16 h-16 text-blue-100 mx-auto mb-6" />
+                  <p className="text-slate-300 text-xl font-bold">No inquiries yet</p>
+                </div>
+              ) : (
+                inquiries.map(inq => (
+                  <div key={inq.id} className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4 relative group">
+                    <button 
+                      onClick={async () => {
+                        if (confirm('Delete this inquiry?')) {
+                          await fetch(`/api/inquiries/${inq.id}`, { method: 'DELETE' });
+                          fetchData();
+                        }
+                      }}
+                      className="absolute top-6 right-6 p-2 bg-red-50 text-red-500 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white"
+                    >
+                      <XCircle className="w-5 h-5" />
+                    </button>
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-800 font-black text-xl">
+                        {inq.name[0]}
+                      </div>
+                      <div>
+                        <h4 className="text-xl font-black text-slate-800">{inq.name}</h4>
+                        <p className="text-sm text-slate-400 font-bold">{inq.email} • {new Date(inq.created_at).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <div className="pt-4 border-t border-slate-200">
+                      <p className="text-xs font-black text-blue-800 uppercase tracking-widest mb-2">{inq.subject}</p>
+                      <p className="text-slate-600 font-bold leading-relaxed whitespace-pre-wrap">{inq.message}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeSubTab === 'suggestions' && (
+          <div className="space-y-6">
+            <h3 className="text-3xl font-black text-slate-800 tracking-tight">Student Suggestions</h3>
+            <div className="grid gap-6">
+              {suggestions.length === 0 ? (
+                <div className="p-24 text-center border-dashed border-2 border-slate-100 rounded-[2.5rem]">
+                  <MessageSquare className="w-16 h-16 text-blue-100 mx-auto mb-6" />
+                  <p className="text-slate-300 text-xl font-bold">No suggestions yet</p>
+                </div>
+              ) : (
+                suggestions.map(sug => (
+                  <div key={sug.id} className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-4 relative group">
+                    <button 
+                      onClick={async () => {
+                        if (confirm('Delete this suggestion?')) {
+                          await fetch(`/api/suggestions/${sug.id}`, { method: 'DELETE' });
+                          fetchData();
+                        }
+                      }}
+                      className="absolute top-6 right-6 p-2 bg-red-50 text-red-500 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white"
+                    >
+                      <XCircle className="w-5 h-5" />
+                    </button>
+                    <div className="flex items-center justify-between">
+                      <div className="px-4 py-1.5 bg-blue-100 text-blue-800 rounded-full text-[10px] font-black uppercase tracking-widest">
+                        {sug.category}
+                      </div>
+                      <span className="text-[10px] text-slate-300 font-black uppercase tracking-widest">{new Date(sug.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <p className="text-xl text-slate-700 font-bold leading-relaxed italic">"{sug.content}"</p>
+                    <div className="pt-4 border-t border-slate-200 flex items-center gap-3">
+                      <UserCircle className="w-5 h-5 text-slate-300" />
+                      <span className="text-sm font-bold text-slate-400">
+                        {sug.is_anonymous ? 'Anonymous Student' : `${sug.students?.name} (${sug.students?.year} - ${sug.students?.section})`}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
         {activeSubTab === 'settings' && (
           <div className="space-y-16">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">

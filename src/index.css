@@ -11,13 +11,13 @@
 
 @layer base {
   body {
-    @apply font-sans text-slate-900 bg-white dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300;
+    @apply font-sans text-slate-900 bg-white transition-colors duration-300;
   }
 }
 
 @layer components {
   .flowy-card {
-    @apply bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:bg-slate-900 dark:border-slate-800 dark:shadow-none;
+    @apply bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100;
   }
   
   .flowy-button {
