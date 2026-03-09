@@ -944,7 +944,7 @@ export default function App() {
       <header className="bg-white/90 backdrop-blur-md border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-4">
-            {logos.logo1 && <img src={logos.logo1} alt="Logo 1" className="h-10 w-10 object-contain" referrerPolicy="no-referrer" />}
+            {logos.logo1 && <img src={logos.logo2} alt="Logo 2" className="h-10 w-10 object-contain" referrerPolicy="no-referrer" />}
             <div>
               <h1 className="text-xl font-sans font-black text-blue-900 leading-none tracking-tight">ARSC - IHMA</h1>
               <p className="text-[8px] text-slate-400 uppercase tracking-[0.3em] mt-1 font-black">Student Council</p>
