@@ -6,6 +6,10 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { parse } from "csv-parse/sync";
+import express from "express";
+import cors from "cors";
+import "dotenv/config";
+import { createClient } from "@supabase/supabase-js";
 
 // Supabase Configuration
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
