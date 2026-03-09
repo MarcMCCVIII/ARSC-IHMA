@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { supabase } from './lib/supabase';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -525,19 +526,36 @@ const Login = ({ onLogin, logos }: { onLogin: (role: 'admin' | 'student', data?:
     e.preventDefault();
     setError('');
     try {
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password, isAdmin })
-      });
-      const data = await res.json();
-      if (data.success) {
-        onLogin(data.role, data.student);
+      if (isAdmin) {
+        const { data: adminPass, error: adminError } = await supabase
+          .from('settings')
+          .select('value')
+          .eq('key', 'admin_password')
+          .single();
+          
+        if (adminError) throw new Error(adminError.message);
+        
+        if (password === adminPass.value) {
+          onLogin('admin');
+        } else {
+          setError('Invalid admin password');
+        }
       } else {
-        setError(data.message);
+        const { data: student, error: studentError } = await supabase
+          .from('students')
+          .select('*')
+          .eq('student_number', password)
+          .single();
+          
+        if (studentError || !student) {
+          setError('Invalid student number');
+          return;
+        }
+        onLogin('student', student);
       }
     } catch (err) {
-      setError('Login failed. Please try again.');
+      console.error('Login error:', err);
+      setError('Login failed. Please check your connection and try again.');
     }
   };
 
@@ -670,19 +688,25 @@ const ProfileSetup = ({ student, onComplete }: { student: Student, onComplete: (
   const [availableSections, setAvailableSections] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch('/api/sections')
-      .then(res => res.json())
-      .then(data => setAvailableSections(data));
+    supabase.from('sections').select('*').then(({ data }) => {
+      if (data) setAvailableSections(data);
+    });
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await fetch('/api/students/update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: student.id, name, year, section })
-    });
-    onComplete({ ...student, name, year, section });
+    try {
+      const { error } = await supabase
+        .from('students')
+        .update({ name, year, section })
+        .eq('id', student.id);
+        
+      if (error) throw error;
+      onComplete({ ...student, name, year, section });
+    } catch (err) {
+      console.error('Update profile error:', err);
+      alert('Failed to update profile.');
+    }
   };
 
   const filteredSections = availableSections.filter(s => s.year === year);
@@ -870,55 +894,62 @@ export default function App() {
 
   const fetchData = async () => {
     try {
-      const [homeRes, newsRes, offRes, candRes, memRes, termRes, partyRes, setRes, statRes, inqRes, sugRes] = await Promise.all([
-        fetch('/api/home-content'),
-        fetch('/api/news'),
-        fetch('/api/officers'),
-        fetch('/api/candidates'),
-        fetch('/api/memories'),
-        fetch('/api/terms'),
-        fetch('/api/partylists'),
-        fetch('/api/settings'),
-        fetch('/api/voting-stats'),
-        fetch('/api/inquiries'),
-        fetch('/api/suggestions')
+      const [
+        { data: homeData },
+        { data: newsData },
+        { data: offData },
+        { data: candData },
+        { data: memData },
+        { data: termData },
+        { data: partyData },
+        { data: setData },
+        { data: inqData },
+        { data: sugData }
+      ] = await Promise.all([
+        supabase.from('home_content').select('*').order('order_index', { ascending: true }),
+        supabase.from('news').select('*').order('created_at', { ascending: false }),
+        supabase.from('officers').select('*').order('created_at', { ascending: false }),
+        supabase.from('candidates').select('*').order('created_at', { ascending: false }),
+        supabase.from('memories').select('*').order('created_at', { ascending: false }),
+        supabase.from('terms').select('*'),
+        supabase.from('partylists').select('*'),
+        supabase.from('settings').select('*'),
+        supabase.from('inquiries').select('*').order('created_at', { ascending: false }),
+        supabase.from('suggestions').select('*').order('created_at', { ascending: false })
       ]);
 
-      const checkRes = async (res: Response, name: string) => {
-        if (!res.ok) {
-          const text = await res.text();
-          console.error(`${name} fetch failed:`, res.status, text.substring(0, 100));
-          throw new Error(`Failed to fetch ${name}: ${res.status}`);
-        }
-        return res.json();
+      // Calculate stats manually since we don't have the server-side endpoint
+      const { data: votesData } = await supabase.from('votes').select('candidate_id, position');
+      const { data: totalStudents } = await supabase.from('students').select('id', { count: 'exact' });
+      const { data: votedStudents } = await supabase.from('students').select('id', { count: 'exact' }).eq('has_voted', true);
+
+      const statsData = {
+        totalVotes: votedStudents?.length || 0,
+        totalStudents: totalStudents?.length || 0,
+        results: votesData?.reduce((acc: any, vote) => {
+          const key = `${vote.position}-${vote.candidate_id}`;
+          acc[key] = (acc[key] || 0) + 1;
+          return acc;
+        }, {})
       };
 
-      const [homeData, newsData, offData, candData, memData, termData, partyData, setData, statData, inqData, sugData] = await Promise.all([
-        checkRes(homeRes, 'home'),
-        checkRes(newsRes, 'news'),
-        checkRes(offRes, 'officers'),
-        checkRes(candRes, 'candidates'),
-        checkRes(memRes, 'memories'),
-        checkRes(termRes, 'terms'),
-        checkRes(partyRes, 'partylists'),
-        checkRes(setRes, 'settings'),
-        checkRes(statRes, 'stats'),
-        checkRes(inqRes, 'inquiries'),
-        checkRes(sugRes, 'suggestions')
-      ]);
+      const settingsObj = setData?.reduce((acc: any, item) => {
+        acc[item.key] = item.value;
+        return acc;
+      }, {}) || {};
 
-      setHomeContent(homeData);
-      setNews(newsData);
-      setOfficers(offData);
-      setCandidates(candData);
-      setMemories(memData);
-      setTerms(termData);
-      setPartylists(partyData);
-      setLogos({ logo1: setData.logo1, logo2: setData.logo2 });
-      setVotingRestriction(setData.voting_restriction);
-      setStats(statData);
-      setInquiries(inqData);
-      setSuggestions(sugData);
+      setHomeContent(homeData || []);
+      setNews(newsData || []);
+      setOfficers(offData || []);
+      setCandidates(candData || []);
+      setMemories(memData || []);
+      setTerms(termData || []);
+      setPartylists(partyData || []);
+      setLogos({ logo1: settingsObj.logo1 || '', logo2: settingsObj.logo2 || '' });
+      setVotingRestriction(settingsObj.voting_restriction || 'everyone');
+      setStats(statsData);
+      setInquiries(inqData || []);
+      setSuggestions(sugData || []);
     } catch (err) {
       console.error('Error fetching data:', err);
     }
@@ -926,8 +957,14 @@ export default function App() {
 
   const handleDelete = async (type: 'news' | 'officers' | 'memories' | 'candidates', id: number) => {
     if (!confirm('Are you sure you want to delete this?')) return;
-    await fetch(`/api/${type}/${id}`, { method: 'DELETE' });
-    fetchData();
+    try {
+      const { error } = await supabase.from(type).delete().eq('id', id);
+      if (error) throw error;
+      fetchData();
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Failed to delete item.');
+    }
   };
 
   if (showIntro) return <Intro onComplete={() => setShowIntro(false)} logo={logos.logo2 || undefined} />;
@@ -1466,14 +1503,29 @@ const VotingForm = ({ candidates, user, restriction, onVote, isAdmin, partylists
   const handleVote = async () => {
     if (isAdmin) return alert("Admins cannot vote.");
     setSubmitting(true);
-    const votes = Object.entries(selectedVotes).map(([pos, id]) => ({ position: pos, candidate_id: id }));
-    await fetch('/api/vote', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ student_id: user?.id, votes })
-    });
-    onVote();
-    setSubmitting(false);
+    try {
+      const votes = Object.entries(selectedVotes).map(([pos, id]) => ({ 
+        student_id: user?.id, 
+        candidate_id: id, 
+        position: pos 
+      }));
+      
+      const { error: voteError } = await supabase.from('votes').insert(votes);
+      if (voteError) throw voteError;
+      
+      const { error: studentError } = await supabase
+        .from('students')
+        .update({ has_voted: true })
+        .eq('id', user?.id);
+      if (studentError) throw studentError;
+      
+      onVote();
+    } catch (err) {
+      console.error('Voting error:', err);
+      alert('Failed to submit votes. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
