@@ -37,10 +37,10 @@ async function startServer() {
     })
   );
 
+  app.options("*", cors());
+
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
-
-  app.options("*", cors());
 
   // Multer setup for temporary storage before uploading to Supabase
   const upload = multer({ storage: multer.memoryStorage() });
