@@ -1,3 +1,4 @@
+import cors from "cors";
 import express from "express";
 import "dotenv/config";
 import { createServer as createViteServer } from "vite";
@@ -6,10 +7,6 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { parse } from "csv-parse/sync";
-import express from "express";
-import cors from "cors";
-import "dotenv/config";
-import { createClient } from "@supabase/supabase-js";
 
 // Supabase Configuration
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
@@ -30,10 +27,20 @@ const supabase = createClient(supabaseUrl || "", supabaseKey || "");
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT || 3000;
+
+  app.use(
+    cors({
+      origin: ["https://www.ihmaarsc.online"],
+      methods: ["GET", "POST", "PUT", "DELETE"],
+      allowedHeaders: ["Content-Type"],
+    })
+  );
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  app.options("*", cors());
 
   // Multer setup for temporary storage before uploading to Supabase
   const upload = multer({ storage: multer.memoryStorage() });
