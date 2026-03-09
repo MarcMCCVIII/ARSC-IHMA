@@ -68,24 +68,23 @@ Configure the following environment variables in your hosting environment:
 
 ---
 
-## 3. Deployment Options
+## 3. Local Development & Build
 
-### Option A: Netlify (Recommended for Static Hosting)
-The application has been updated to be a **Pure Single Page Application (SPA)**. This means it talks directly to Supabase from the browser, making it compatible with Netlify.
+### Installation
+```bash
+npm install
+```
 
-1. Connect your GitHub repository to Netlify.
-2. Set the **Build Command** to `npm run build`.
-3. Set the **Publish Directory** to `dist`.
-4. Add your **Environment Variables** in the Netlify UI.
-5. **Important**: Since the app is an SPA, you must add a `_redirects` file to the `public` folder with the following content to handle routing:
-   ```
-   /*  /index.html  200
-   ```
+### Development
+```bash
+npm run dev
+```
 
-### Option B: Railway / Render (Recommended for Full-Stack)
-If you want to use the Express server, use a host that supports Node.js.
-1. Connect your repository.
-2. The platform will automatically detect the `start` script and run the server.
+### Production Build
+```bash
+npm run build
+npm start
+```
 
 ---
 
