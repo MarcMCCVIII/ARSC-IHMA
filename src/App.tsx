@@ -1125,7 +1125,11 @@ const PositionManager = ({ onUpdate }: { onUpdate: () => void }) => {
   const [name, setName] = useState('');
   const [category, setCategory] = useState('Executive');
 
-  const fetchPositions = () => fetch('https://ihma-backend.onrender.com/api/positions').then(res => res.json()).then(setPositions);
+  const fetchPositions = () => 
+    fetch('https://ihma-backend.onrender.com/api/positions')
+      .then(res => res.json())
+      .then(setPositions);
+
   useEffect(() => { fetchPositions(); }, []);
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -1135,7 +1139,9 @@ const PositionManager = ({ onUpdate }: { onUpdate: () => void }) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, category })
     });
-    setName(''); fetchPositions(); onUpdate();
+    setName(''); 
+    fetchPositions(); 
+    onUpdate();
   };
 
   const handleDelete = async (id: number) => {
@@ -1144,18 +1150,16 @@ const PositionManager = ({ onUpdate }: { onUpdate: () => void }) => {
     if (!data.success) {
       alert(data.message);
     } else {
-      fetchPositions(); onUpdate();
+      fetchPositions(); 
+      onUpdate();
     }
   };
 
-return (
-<div className="space-y-10">
-  <h3 className="text-2xl font-black text-slate-800 tracking-tight">
-    Manage Positions
-  </h3>
-</div>
-);
-};
+  return (
+    <div className="space-y-10">
+      <h3 className="text-2xl font-black text-slate-800 tracking-tight">
+        Manage Positions
+      </h3>
 
       <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <input
@@ -1214,4 +1218,6 @@ return (
   );
 };
 
+// IMPORTANT: Make sure your main App component is defined after this 
+// or that this is the end of the file.
 export default App;
