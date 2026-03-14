@@ -713,7 +713,7 @@ const ProfileSetup = ({ student, onComplete }: { student: Student, onComplete: (
               <label className="block text-sm font-bold text-slate-700 ml-1">Year Level</label>
               <select 
                 value={year} onChange={e => { setYear(e.target.value); setSection(''); }}
-                className="w-full px-5 py-3 rounded-2xl border border-slate-200 bg-white/50 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" 
+                className="w-full px-5 py-3 rounded-2xl border border-slate-200 bg-white/50 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all font-bold text-slate-700"
                 required
               >
                 <option value="">Select Year</option>
@@ -733,7 +733,7 @@ const ProfileSetup = ({ student, onComplete }: { student: Student, onComplete: (
               <label className="block text-sm font-bold text-slate-700 ml-1">Section</label>
               <select 
                 value={section} onChange={e => setSection(e.target.value)}
-                className="w-full px-5 py-3 rounded-2xl border border-slate-200 bg-white/50 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" 
+                className="w-full px-5 py-3 rounded-2xl border border-slate-200 bg-white/50 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all font-bold text-slate-700"
                 required
                 disabled={!year}
               >
@@ -810,354 +810,7 @@ const AddStudent = ({ onComplete }: { onComplete: () => void }) => {
   );
 };
 
-export default function App() {
-  const [showIntro, setShowIntro] = useState(true);
-  const [role, setRole] = useState<'admin' | 'student' | null>(null);
-  const [user, setUser] = useState<Student | null>(null);
-  const [activeTab, setActiveTab] = useState('home');
-  const [logos, setLogos] = useState({ logo1: '', logo2: '' });
-  const [loadingLogos, setLoadingLogos] = useState(true);
-  const [homeContent, setHomeContent] = useState<HomeContent[]>([]);
-  const [news, setNews] = useState<News[]>([]);
-  const [officers, setOfficers] = useState<Officer[]>([]);
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [memories, setMemories] = useState<Memory[]>([]);
-  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [terms, setTerms] = useState<Term[]>([]);
-  const [partylists, setPartylists] = useState<Partylist[]>([]);
-  const [votingRestriction, setVotingRestriction] = useState('everyone');
-  const [stats, setStats] = useState<any>(null);
-  const [editingNews, setEditingNews] = useState<News | null>(null);
-  const [editingOfficer, setEditingOfficer] = useState<Officer | null>(null);
-  const [editingMemory, setEditingMemory] = useState<Memory | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Ensure light mode is always active
-    document.documentElement.classList.remove('dark');
-    localStorage.setItem('theme', 'light');
-  }, []);
-
-  useEffect(() => {
-    // Fetch logos and settings immediately
-    fetch('https://ihma-backend.onrender.com/api/settings')
-      .then(async res => {
-        if (!res.ok) {
-          const text = await res.text();
-          console.error('Settings fetch failed:', res.status, text.substring(0, 100));
-          throw new Error(`Failed to fetch settings: ${res.status}`);
-        }
-        return res.json();
-      })
-      .then(settings => {
-        setLogos({ logo1: settings.logo1, logo2: settings.logo2 });
-        setVotingRestriction(settings.voting_restriction);
-        setLoadingLogos(false);
-      })
-      .catch(err => {
-        console.error('Error in settings fetch:', err);
-        setLoadingLogos(false);
-      });
-  }, []);
-
-  useEffect(() => {
-    if (role) {
-      fetchData();
-    }
-  }, [role]);
-
-  const fetchData = async () => {
-    try {
-      const [homeRes, newsRes, offRes, candRes, memRes, termRes, partyRes, setRes, statRes, inqRes, sugRes] = await Promise.all([
-        fetch('https://ihma-backend.onrender.com/api/home-content'),
-        fetch('https://ihma-backend.onrender.com/api/news'),
-        fetch('https://ihma-backend.onrender.com/api/officers'),
-        fetch('https://ihma-backend.onrender.com/api/candidates'),
-        fetch('https://ihma-backend.onrender.com/api/memories'),
-        fetch('https://ihma-backend.onrender.com/api/terms'),
-        fetch('https://ihma-backend.onrender.com/api/partylists'),
-        fetch('https://ihma-backend.onrender.com/api/settings'),
-        fetch('https://ihma-backend.onrender.com/api/voting-stats'),
-        fetch('https://ihma-backend.onrender.com/api/inquiries'),
-        fetch('https://ihma-backend.onrender.com/api/suggestions')
-      ]);
-
-      const checkRes = async (res: Response, name: string) => {
-        if (!res.ok) {
-          const text = await res.text();
-          console.error(`${name} fetch failed:`, res.status, text.substring(0, 100));
-          throw new Error(`Failed to fetch ${name}: ${res.status}`);
-        }
-        return res.json();
-      };
-
-      const [homeData, newsData, offData, candData, memData, termData, partyData, setData, statData, inqData, sugData] = await Promise.all([
-        checkRes(homeRes, 'home'),
-        checkRes(newsRes, 'news'),
-        checkRes(offRes, 'officers'),
-        checkRes(candRes, 'candidates'),
-        checkRes(memRes, 'memories'),
-        checkRes(termRes, 'terms'),
-        checkRes(partyRes, 'partylists'),
-        checkRes(setRes, 'settings'),
-        checkRes(statRes, 'stats'),
-        checkRes(inqRes, 'inquiries'),
-        checkRes(sugRes, 'suggestions')
-      ]);
-
-      setHomeContent(homeData);
-      setNews(newsData);
-      setOfficers(offData);
-      setCandidates(candData);
-      setMemories(memData);
-      setTerms(termData);
-      setPartylists(partyData);
-      setLogos({ logo1: setData.logo1, logo2: setData.logo2 });
-      setVotingRestriction(setData.voting_restriction);
-      setStats(statData);
-      setInquiries(inqData);
-      setSuggestions(sugData);
-    } catch (err) {
-      console.error('Error fetching data:', err);
-    }
-  };
-
-  const handleDelete = async (type: 'news' | 'officers' | 'memories' | 'candidates', id: number) => {
-    if (!confirm('Are you sure you want to delete this?')) return;
-    await fetch(`https://ihma-backend.onrender.com/api/${type}/${id}`, {
-      method: 'DELETE'
-    });
-    fetchData();
-  };
-
-  if (showIntro) return <Intro onComplete={() => setShowIntro(false)} logo={logos.logo2 || undefined} />;
-  if (!role) return <Login onLogin={(r, u) => { setRole(r); setUser(u); }} logos={logos} />;
-  if (role === 'student' && user && (!user.name || !user.year)) {
-    return <ProfileSetup student={user} onComplete={setUser} />;
-  }
-
-  const isAdmin = role === 'admin';
-
-  return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Navigation Bar */}
-      <header className="bg-white/90 backdrop-blur-md border-b border-slate-100 px-8 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-4">
-            {logos.logo1 && <img src={logos.logo2} alt="Logo 2" className="h-10 w-10 object-contain" referrerPolicy="no-referrer" />}
-            <div>
-              <h1 className="text-xl font-sans font-black text-blue-900 leading-none tracking-tight">ARSC - IHMA</h1>
-              <p className="text-[8px] text-slate-400 uppercase tracking-[0.3em] mt-1 font-black">Student Council</p>
-            </div>
-          </div>
-          <nav className="hidden lg:flex items-center gap-1">
-            {[
-              { id: 'home', label: 'Home', icon: Home },
-              { id: 'news', label: 'News', icon: Newspaper },
-              { id: 'officers', label: 'Officers', icon: Users },
-              { id: 'memories', label: 'Memories', icon: History },
-              { id: 'voting', label: 'Voting', icon: Vote },
-              { id: 'suggestions', label: 'Suggestions', icon: MessageSquare },
-              ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: Settings }] : [])
-            ].map(item => (
-              <button 
-                key={item.id} 
-                onClick={() => setActiveTab(item.id)}
-                className={cn(
-                  "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all duration-300",
-                  activeTab === item.id ? "bg-blue-900 text-white shadow-md" : "text-slate-400 hover:bg-slate-50 hover:text-blue-800"
-                )}
-              >
-                <item.icon className={cn("w-4 h-4", activeTab === item.id ? "text-white" : "text-slate-300")} />
-                {item.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-blue-50 rounded-2xl border border-blue-100">
-            <UserCircle className="w-5 h-5 text-blue-500" />
-            <span className="text-sm font-bold text-blue-900">
-              {isAdmin ? 'Administrator' : user?.name}
-            </span>
-          </div>
-          <button 
-            onClick={() => { setRole(null); setUser(null); }}
-            className="p-2.5 hover:bg-red-50 hover:text-red-500 rounded-2xl text-slate-400 transition-all active:scale-90"
-            title="Logout"
-          >
-            <LogOut className="w-6 h-6" />
-          </button>
-        </div>
-      </header>
-
-      {/* Mobile Navigation */}
-      <nav className="lg:hidden bg-white border-b border-slate-100 px-4 py-2 flex overflow-x-auto no-scrollbar gap-2 sticky top-[73px] z-30">
-        {[
-          { id: 'home', label: 'Home', icon: Home },
-          { id: 'news', label: 'News', icon: Newspaper },
-          { id: 'officers', label: 'Officers', icon: Users },
-          { id: 'memories', label: 'Memories', icon: History },
-          { id: 'voting', label: 'Voting', icon: Vote },
-          { id: 'suggestions', label: 'Suggestions', icon: MessageSquare },
-          ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: Settings }] : [])
-        ].map(item => (
-          <button 
-            key={item.id} 
-            onClick={() => setActiveTab(item.id)}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all whitespace-nowrap",
-              activeTab === item.id ? "bg-blue-900 text-white shadow-sm" : "text-slate-400 hover:bg-slate-50 hover:text-blue-800"
-            )}
-          >
-            <item.icon className="w-3.5 h-3.5" />
-            {item.label}
-          </button>
-        ))}
-      </nav>
-
-      {/* Main Content Area */}
-      <main className="flex-1 p-6 md:p-10 overflow-y-auto">
-        <AnimatePresence mode="wait">
-          <motion.div 
-            key={activeTab}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-          >
-            {activeTab === 'home' && <HomeView content={homeContent} />}
-            
-            {activeTab === 'news' && (
-              <div className="max-w-5xl mx-auto">
-                <div className="text-center mb-16">
-                  <h2 className="text-6xl font-sans font-black text-blue-900 tracking-tight">News & Events</h2>
-                  <div className="h-1.5 w-40 bg-red-600 mx-auto mt-6 rounded-full" />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {news.map(item => (
-                    <NewsItem 
-                      key={item.id} 
-                      item={item} 
-                      isAdmin={isAdmin} 
-                      onDelete={() => handleDelete('news', item.id)}
-                      onEdit={() => setEditingNews(item)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'voting' && (
-              <div className="max-w-5xl mx-auto pb-20">
-                <div className="text-center mb-16">
-                  <h2 className="text-6xl font-sans font-black text-blue-900 tracking-tight">Vote Your Leaders</h2>
-                  <div className="h-1.5 w-40 bg-red-600 mx-auto mt-6 rounded-full" />
-                </div>
-                
-                {/* Voting Restriction Notice */}
-                {user && votingRestriction !== 'everyone' && user.year !== votingRestriction && (
-                  <div className="p-10 bg-red-50 border-2 border-red-100 rounded-[2.5rem] text-center mb-12">
-                    <XCircle className="w-16 h-16 text-red-500 mx-auto mb-6" />
-                    <h3 className="text-3xl font-black text-red-900 mb-2">Voting Restricted</h3>
-                    <p className="text-red-600 font-bold">Currently, voting is only open for {votingRestriction}.</p>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {candidates.map(candidate => (
-<div key={candidate.id} className="flowy-card p-6 flex flex-col items-center group">
-
-{/* Candidate Image */}
-<div
-className="relative w-full mb-6 cursor-pointer overflow-hidden rounded-2xl shadow-lg aspect-square"
-onClick={() => setZoomedImage(candidate.image_url || null)}
-
-<img
-src={candidate.image_url || 'https://via.placeholder.com/300?text=Candidate'}
-alt={candidate.name}
-className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-referrerPolicy="no-referrer"
-/>
-
-<div className="absolute inset-0 bg-black/0 hover:bg-black/20 flex items-center justify-center transition-all">
-<Eye className="text-white opacity-0 group-hover:opacity-100 w-10 h-10 transition-opacity"/>
-</div>
-</div>
-
-<h3 className="text-2xl font-black text-slate-800 mb-1">{candidate.name}</h3>
-
-<p className="text-blue-600 font-black uppercase tracking-widest text-xs mb-2">
-{candidate.position}
-</p>
-
-<p className="text-slate-400 font-bold italic mb-4">
-Partylist: {candidate.partylist_name || 'Independent'}
-</p>
-
-{/* STUDENT VOTE BUTTON */}
-{!isAdmin && user && user.has_voted === 0 && (
-<button className="w-full flowy-button bg-blue-900 text-white">
-Cast Vote
-</button>
-)}
-
-{/* ADMIN DELETE BUTTON */}
-{isAdmin && (
-<button
-onClick={() => handleDelete('candidates', candidate.id)}
-className="mt-3 px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition"
-
-Delete Candidate
-</button>
-)}
-
-</div>
-))}
-            {activeTab === 'admin' && isAdmin && (
-              <div className="max-w-6xl mx-auto space-y-12 pb-20">
-                <div className="text-center mb-16">
-                  <h2 className="text-6xl font-sans font-black text-blue-900 tracking-tight">Admin Control</h2>
-                  <div className="h-1.5 w-40 bg-red-600 mx-auto mt-6 rounded-full" />
-                </div>
-
-                {/* Candidate Management in Admin */}
-                <section className="space-y-8">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-3xl font-black text-slate-800 tracking-tight">Candidates</h3>
-                    <button className="flowy-button bg-blue-900 text-white flex items-center gap-2">
-                      <Plus className="w-5 h-5" /> Add Candidate
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {candidates.map(c => (
-                      <div key={c.id} className="flowy-card p-6 flex items-center justify-between group">
-                        <div className="flex items-center gap-4">
-                          <img 
-                            src={c.image_url || 'https://via.placeholder.com/100'} 
-                            className="w-16 h-16 rounded-2xl object-cover shadow-sm"
-                            referrerPolicy="no-referrer"
-                          />
-                          <div>
-                            <p className="font-black text-slate-800 leading-tight">{c.name}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{c.position}</p>
-                          </div>
-                        </div>
-                        {/* DELETE CANDIDATE BUTTON */}
-                        <button 
-                          onClick={() => handleDelete('candidates', c.id)}
-                          className="p-3 text-red-500 hover:bg-red-50 rounded-2xl transition-all"
-                          title="Delete Candidate"
-                        >
-                          <XCircle className="w-6 h-6" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-                {const AddNews = ({ onComplete, initialData }: { onComplete: () => void, initialData?: News }) => {
+const AddNews = ({ onComplete, initialData }: { onComplete: () => void, initialData?: News }) => {
   const [title, setTitle] = useState(initialData?.title || '');
   const [content, setContent] = useState(initialData?.content || '');
   const [date, setDate] = useState(initialData?.date || '');
@@ -1184,11 +837,11 @@ Delete Candidate
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <input placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required />
-      <textarea placeholder="Content" value={content} onChange={e => setContent(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700 h-48" required />
-      <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required />
+      <input placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 outline-none font-bold text-slate-700" required />
+      <textarea placeholder="Content" value={content} onChange={e => setContent(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 outline-none font-bold text-slate-700 resize-none" rows={6} required />
+      <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 outline-none font-bold text-slate-700" required />
       <div className="p-8 border-2 border-dashed border-slate-100 rounded-2xl">
-        <input type="file" onChange={e => setImage(e.target.files?.[0] || null)} className="w-full text-sm text-slate-400 file:mr-6 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-black file:bg-blue-50 file:text-blue-900 hover:file:bg-blue-100 transition-all" />
+        <input type="file" onChange={e => setImage(e.target.files?.[0] || null)} className="w-full text-sm text-slate-400 file:mr-6 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-blue-50 file:text-blue-800 hover:file:bg-blue-100" />
       </div>
       <button type="submit" className="w-full flowy-button bg-blue-900 text-white hover:bg-blue-950">
         {initialData?.id ? 'Update News' : 'Post News'}
@@ -1232,8 +885,8 @@ const AddOfficer = ({ onComplete, initialData }: { onComplete: () => void, initi
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <input placeholder="Name" value={name} onChange={e => setName(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required />
-        <select value={category} onChange={e => setCategory(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-100 focus:border-blue-900 outline-none transition-all font-bold text-slate-700" required>
+        <input placeholder="Name" value={name} onChange={e => setName(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 outline-none font-bold text-slate-700" required />
+        <select value={category} onChange={e => setCategory(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-100 focus:border-blue-900 outline-none font-bold text-slate-700" required>
           <option value="Executive">Executive</option>
           <option value="Judiciary">Judiciary</option>
           <option value="Legislative">Legislative</option>
@@ -1242,16 +895,16 @@ const AddOfficer = ({ onComplete, initialData }: { onComplete: () => void, initi
           <option value="Teacher Servant">Teacher Servant</option>
           <option value="Sister Servant">Sister Servant</option>
         </select>
-        <select value={position} onChange={e => setPosition(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required>
+        <select value={position} onChange={e => setPosition(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 outline-none font-bold text-slate-700" required>
           <option value="">Select Position</option>
           {positions.filter(p => p.category === category).map(p => (
             <option key={p.id} value={p.name}>{p.name}</option>
           ))}
         </select>
-        <input placeholder="Year/Term" value={year} onChange={e => setYear(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required />
+        <input placeholder="Year/Term" value={year} onChange={e => setYear(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 outline-none font-bold text-slate-700" required />
       </div>
       <div className="p-8 border-2 border-dashed border-slate-100 rounded-2xl">
-        <input type="file" onChange={e => setImage(e.target.files?.[0] || null)} className="w-full text-sm text-slate-400 file:mr-6 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-black file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all" />
+        <input type="file" onChange={e => setImage(e.target.files?.[0] || null)} className="w-full text-sm text-slate-400 file:mr-6 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-blue-50 file:text-blue-800 hover:file:bg-blue-100" />
       </div>
       <button type="submit" className="w-full flowy-button bg-blue-900 text-white hover:bg-blue-950">
         {initialData?.id ? 'Update Officer' : 'Save Officer'}
@@ -1304,8 +957,8 @@ const AddCandidate = ({ onComplete }: { onComplete: () => void }) => {
     <form onSubmit={handleSubmit} className="space-y-8">
       <h3 className="text-2xl font-black text-slate-800 tracking-tight">Add Candidate</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <input placeholder="Candidate Name" value={name} onChange={e => setName(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required />
-        <select value={category} onChange={e => setCategory(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-100 focus:border-blue-900 outline-none transition-all font-bold text-slate-700" required>
+        <input placeholder="Candidate Name" value={name} onChange={e => setName(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 outline-none font-bold text-slate-700" required />
+        <select value={category} onChange={e => setCategory(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-100 focus:border-blue-900 outline-none font-bold text-slate-700" required>
           <option value="Executive">Executive</option>
           <option value="Legislative">Legislative</option>
           <option value="Departmental">Departmental</option>
@@ -1314,7 +967,7 @@ const AddCandidate = ({ onComplete }: { onComplete: () => void }) => {
           <option value="Teacher Servant">Teacher Servant</option>
           <option value="Sister Servant">Sister Servant</option>
         </select>
-        <select value={position} onChange={e => setPosition(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required>
+        <select value={position} onChange={e => setPosition(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 outline-none font-bold text-slate-700" required>
           <option value="">Select Position</option>
           {positions.filter(p => p.category === category).map(p => (
             <option key={p.id} value={p.name}>{p.name}</option>
@@ -1328,17 +981,17 @@ const AddCandidate = ({ onComplete }: { onComplete: () => void }) => {
           <option value="">Candidate Grade Level</option>
           {[3,4,5,6,7,8,9,10,11,12].map(y => <option key={y} value={`Grade ${y}`}>Grade {y}</option>)}
         </select>
-        <select value={partylistId} onChange={e => setPartylistId(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700">
+        <select value={partylistId} onChange={e => setPartylistId(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 outline-none font-bold text-slate-700">
           <option value="">Independent</option>
           {partylists.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
-        <select value={termId} onChange={e => setTermId(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required>
+        <select value={termId} onChange={e => setTermId(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 outline-none font-bold text-slate-700" required>
           <option value="">Select Term</option>
           {terms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
         <div className="p-4 border-2 border-dashed border-slate-100 rounded-2xl">
           <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Candidate Photo</p>
-          <input type="file" onChange={e => setImage(e.target.files?.[0] || null)} className="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-blue-50 file:text-blue-900 hover:file:bg-blue-100 transition-all" />
+          <input type="file" onChange={e => setImage(e.target.files?.[0] || null)} className="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-800 hover:file:bg-blue-100" />
         </div>
         <div className="md:col-span-2 space-y-4">
           <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] ml-1">Voting Restriction (Who can vote for this candidate?)</label>
@@ -1402,10 +1055,10 @@ const AddMemory = ({ onComplete, initialData }: { onComplete: () => void, initia
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      <input placeholder="Caption (e.g. ARSC Officers)" value={caption} onChange={e => setCaption(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required />
-      <input placeholder="Batch (e.g. 2020-2021)" value={batch} onChange={e => setBatch(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required />
+      <input placeholder="Caption (e.g. ARSC Officers)" value={caption} onChange={e => setCaption(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 outline-none font-bold text-slate-700" required />
+      <input placeholder="Batch (e.g. 2020-2021)" value={batch} onChange={e => setBatch(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 outline-none font-bold text-slate-700" required />
       <div className="p-8 border-2 border-dashed border-slate-100 rounded-2xl">
-        <input type="file" onChange={e => setImage(e.target.files?.[0] || null)} className="w-full text-sm text-slate-400 file:mr-6 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-black file:bg-blue-50 file:text-blue-900 hover:file:bg-blue-100 transition-all" />
+        <input type="file" onChange={e => setImage(e.target.files?.[0] || null)} className="w-full text-sm text-slate-400 file:mr-6 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-blue-50 file:text-blue-800 hover:file:bg-blue-100" />
       </div>
       <button type="submit" className="w-full flowy-button bg-blue-900 text-white hover:bg-blue-950">
         {initialData?.id ? 'Update Memory' : 'Add Memory'}
@@ -1497,265 +1150,4 @@ const PositionManager = ({ onUpdate }: { onUpdate: () => void }) => {
 
   return (
     <div className="space-y-10">
-      <h3 className="text-2xl font-black text-slate-800 tracking-tight">Manage Positions</h3>
-      <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-4">
-        <input placeholder="Position Name" value={name} onChange={e => setName(e.target.value)} className="flex-1 px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 outline-none font-bold text-slate-700" required />
-        <select value={category} onChange={e => setCategory(e.target.value)} className="px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 outline-none font-bold text-slate-700" required>
-          <option value="Executive">Executive</option>
-          <option value="Judiciary">Judiciary</option>
-          <option value="Legislative">Legislative</option>
-          <option value="Ministries">Ministries</option>
-          <option value="Departmental">Departmental</option>
-          <option value="Teacher Servant">Teacher Servant</option>
-          <option value="Sister Servant">Sister Servant</option>
-        </select>
-        <button type="submit" className="p-4 bg-blue-900 text-white rounded-2xl hover:bg-blue-950 transition-all"><Plus /></button>
-      </form>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-        {['Executive', 'Judiciary', 'Legislative', 'Ministries', 'Departmental', 'Teacher Servant', 'Sister Servant'].map(cat => (
-          <div key={cat} className="space-y-4">
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] ml-1">{cat}</p>
-            <div className="space-y-3">
-              {positions.filter(p => p.category === cat).map(p => (
-                <div key={p.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-50">
-                  <span className="text-sm font-black text-slate-700 tracking-tight">{p.name}</span>
-                  <button onClick={() => handleDelete(p.id)} className="text-red-300 hover:text-red-500 transition-all"><XCircle className="w-5 h-5" /></button>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const PartylistManager = ({ onUpdate }: { onUpdate: () => void }) => {
-  const [partylists, setPartylists] = useState<Partylist[]>([]);
-  const [name, setName] = useState('');
-  const [image, setImage] = useState<File | null>(null);
-
-  const fetchPartylists = () => fetch('https://ihma-backend.onrender.com/api/partylists').then(res => res.json()).then(setPartylists);
-  useEffect(() => { fetchPartylists(); }, []);
-
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const formData = new FormData();
-    formData.append('name', name);
-    if (image) formData.append('platform_image', image);
-    
-    await fetch('https://ihma-backend.onrender.com/api/partylists', { method: 'POST', body: formData });
-    setName(''); setImage(null); fetchPartylists(); onUpdate();
-  };
-
-  const handleDelete = async (id: number) => {
-    await fetch(`https://ihma-backend.onrender.com/api/partylists/${id}`, { method: 'DELETE' });
-    fetchPartylists(); onUpdate();
-  };
-
-  return (
-    <div className="space-y-10">
-      <h3 className="text-2xl font-black text-slate-800 tracking-tight">Manage Partylists</h3>
-      <form onSubmit={handleAdd} className="space-y-8">
-        <div className="flex gap-4">
-          <input placeholder="Partylist Name" value={name} onChange={e => setName(e.target.value)} className="flex-1 px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 outline-none font-bold text-slate-700 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 transition-all" required />
-          <button type="submit" className="p-4 bg-blue-900 text-white rounded-2xl hover:bg-blue-950 transition-all"><Plus /></button>
-        </div>
-        <div className="p-8 border-2 border-dashed border-slate-100 rounded-2xl">
-          <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-4">Platform Image (Optional)</p>
-          <input type="file" onChange={e => setImage(e.target.files?.[0] || null)} className="w-full text-sm text-slate-400 file:mr-6 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-black file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all" />
-        </div>
-      </form>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {partylists.map(p => (
-          <div key={p.id} className="flex items-center justify-between p-6 bg-slate-50 rounded-2xl border border-slate-50 group hover:border-blue-100 transition-all">
-            <div className="flex items-center gap-4">
-              <span className="font-black text-slate-700 tracking-tight">{p.name}</span>
-              {p.platform_image_url && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full uppercase font-black tracking-widest">Platform</span>}
-            </div>
-            <button onClick={() => handleDelete(p.id)} className="text-red-300 hover:text-red-500 transition-all"><XCircle className="w-6 h-6" /></button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const ChangePassword = () => {
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPassword !== confirmPassword) return alert("Passwords do not match");
-    
-    setLoading(true);
-    const res = await fetch('https://ihma-backend.onrender.com/api/settings/change-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ currentPassword, newPassword })
-    });
-    const data = await res.json();
-    setLoading(false);
-    
-    if (data.success) {
-      alert("Password changed successfully");
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } else {
-      alert(data.message);
-    }
-  };
-
-  return (
-    <div className="space-y-8">
-      <h3 className="text-2xl font-black text-slate-800 tracking-tight">Change Admin Password</h3>
-      <form onSubmit={handleSubmit} className="space-y-6 max-w-md">
-        <div className="space-y-2">
-          <label className="text-xs font-black uppercase text-slate-400 tracking-widest ml-1">Current Password</label>
-          <input 
-            type="password" 
-            value={currentPassword} 
-            onChange={e => setCurrentPassword(e.target.value)} 
-            className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-100 focus:border-blue-900 outline-none transition-all font-bold text-slate-700" 
-            required 
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-xs font-black uppercase text-slate-400 tracking-widest ml-1">New Password</label>
-          <input 
-            type="password" 
-            value={newPassword} 
-            onChange={e => setNewPassword(e.target.value)} 
-            className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-100 focus:border-blue-900 outline-none transition-all font-bold text-slate-700" 
-            required 
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-xs font-black uppercase text-slate-400 tracking-widest ml-1">Confirm New Password</label>
-          <input 
-            type="password" 
-            value={confirmPassword} 
-            onChange={e => setConfirmPassword(e.target.value)} 
-            className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-100 focus:border-blue-900 outline-none transition-all font-bold text-slate-700" 
-            required 
-          />
-        </div>
-        <button 
-          type="submit" 
-          disabled={loading}
-          className="w-full flowy-button bg-blue-900 text-white hover:bg-blue-950 disabled:opacity-50"
-        >
-          {loading ? 'Updating...' : 'Update Password'}
-        </button>
-      </form>
-    </div>
-  );
-};
-
-const SectionManager = ({ onUpdate }: { onUpdate: () => void }) => {
-  const [sections, setSections] = useState<any[]>([]);
-  const [year, setYear] = useState('');
-  const [name, setName] = useState('');
-
-  useEffect(() => {
-    fetch('https://ihma-backend.onrender.com/api/sections').then(res => res.json()).then(setSections);
-  }, []);
-
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await fetch('https://ihma-backend.onrender.com/api/sections', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ year, name })
-    });
-    setYear(''); setName('');
-    const res = await fetch('https://ihma-backend.onrender.com/api/sections');
-    setSections(await res.json());
-    onUpdate();
-  };
-
-  const handleDelete = async (id: number) => {
-    await fetch(`https://ihma-backend.onrender.com/api/sections/${id}`, { method: 'DELETE' });
-    const res = await fetch('https://ihma-backend.onrender.com/api/sections');
-    setSections(await res.json());
-    onUpdate();
-  };
-
-  return (
-    <div className="space-y-12">
-      <form onSubmit={handleAdd} className="space-y-8">
-        <h3 className="text-2xl font-black text-slate-800 tracking-tight">Add New Section</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <select 
-            value={year} onChange={e => setYear(e.target.value)}
-            className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" 
-            required
-          >
-            <option value="">Select Year</option>
-            {[3,4,5,6,7,8,9,10,11,12].map(y => <option key={y} value={`Grade ${y}`}>Grade {y}</option>)}
-          </select>
-          <input 
-            placeholder="Section Name (e.g. St. Jude)" 
-            value={name} onChange={e => setName(e.target.value)} 
-            className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" 
-            required 
-          />
-        </div>
-        <button type="submit" className="w-full flowy-button bg-blue-900 text-white hover:bg-blue-950">Add Section</button>
-      </form>
-
-      <div className="border-t border-slate-100 pt-12">
-        <h3 className="text-2xl font-black mb-10 text-slate-800 tracking-tight">Manage Sections</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sections.map(s => (
-            <div key={s.id} className="flex items-center justify-between p-6 bg-slate-50 rounded-2xl border border-slate-50 group hover:border-blue-100 transition-all">
-              <div>
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">{s.year}</p>
-                <p className="font-black text-slate-700 tracking-tight">{s.name}</p>
-              </div>
-              <button 
-                onClick={() => handleDelete(s.id)}
-                className="p-2 text-red-200 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-              >
-                <XCircle className="w-6 h-6" />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};}
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </main>
-
-      {/* GLOBAL ZOOM MODAL */}
-      <Modal 
-        isOpen={!!zoomedImage} 
-        onClose={() => setZoomedImage(null)} 
-        title="Image Preview"
-      >
-        <div className="flex flex-col items-center">
-          <img 
-            src={zoomedImage || ''} 
-            className="max-w-full max-h-[70vh] rounded-2xl object-contain shadow-2xl" 
-            referrerPolicy="no-referrer"
-          />
-          <button 
-            onClick={() => setZoomedImage(null)}
-            className="mt-8 flowy-button bg-slate-900 text-white px-12"
-          >
-            Close Preview
-          </button>
-        </div>
-      </Modal>
-    </div>
-  );
-}
+      <h3 className="text-2xl font-black text-slate-800 tracking-tight
