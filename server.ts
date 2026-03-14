@@ -490,15 +490,15 @@ async function startServer() {
   });
 
   app.post("/api/vote", async (req, res) => {
-    const { student_id, votes } = req.body;
+    const { student_number, votes } = req.body;
     
-    const { data: student } = await supabase.from('students').select('has_voted').eq('id', student_id).single();
+    const { data: student } = await supabase.from('students').select('has_voted').eq('id', student_number).single();
     if (student?.has_voted) {
       return res.status(400).json({ success: false, message: "Already voted" });
     }
 
     const voteInserts = votes.map((v: any) => ({
-      student_id,
+      student_number,
       candidate_id: v.candidate_id,
       position: v.position
     }));
@@ -506,7 +506,7 @@ async function startServer() {
     const { error: voteError } = await supabase.from('votes').insert(voteInserts);
     if (voteError) return res.status(500).json({ success: false, message: voteError.message });
     
-    const { error: studentError } = await supabase.from('students').update({ has_voted: true }).eq('id', student_id);
+    const { error: studentError } = await supabase.from('students').update({ has_voted: true }).eq('id', student_number);
     if (studentError) return res.status(500).json({ success: false, message: studentError.message });
     
     res.json({ success: true });
@@ -608,7 +608,7 @@ async function startServer() {
   });
 
   app.post("/api/students/:id/reset-vote", async (req, res) => {
-    await supabase.from('votes').delete().eq('student_id', req.params.id);
+    await supabase.from('votes').delete().eq('student_number', req.params.id);
     await supabase.from('students').update({ has_voted: false }).eq('id', req.params.id);
     res.json({ success: true });
   });
@@ -664,12 +664,12 @@ async function startServer() {
 
   // Suggestions
   app.post("/api/suggestions", async (req, res) => {
-    const { category, content, is_anonymous, student_id } = req.body;
+    const { category, content, is_anonymous, student_number } = req.body;
     const { error } = await supabase.from('suggestions').insert([{ 
       category, 
       content, 
       is_anonymous, 
-      student_id: is_anonymous ? null : student_id 
+      student_number: is_anonymous ? null : student_number 
     }]);
     if (error) return res.status(500).json({ success: false, message: error.message });
     res.json({ success: true });
