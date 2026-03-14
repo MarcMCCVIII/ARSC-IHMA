@@ -1979,7 +1979,7 @@ const AdminPanel = ({
                       className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100"
                     >
                       <option value="All">All Years</option>
-                      {[7,8,9,10,11,12].map(y => <option key={y} value={`Grade ${y}`}>Grade {y}</option>)}
+                      {[3,4,5,6,7,8,9,10,11,12].map(y => <option key={y} value={`Grade ${y}`}>Grade {y}</option>)}
                     </select>
                     <select 
                       value={sectionFilter} 
@@ -2019,7 +2019,7 @@ const AdminPanel = ({
                   <table className="w-full text-left">
                     <thead>
                       <tr className="text-xs font-black uppercase text-slate-400 tracking-widest border-b border-slate-100">
-                        <th className="pb-6">Student ID (Password)</th>
+                        <th className="pb-6">Student Number</th>
                         <th className="pb-6">Name</th>
                         <th className="pb-6">Year & Section</th>
                         <th className="pb-6">Status</th>
