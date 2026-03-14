@@ -5,7 +5,7 @@ import {
   Newspaper, 
   Users, 
   History, 
-  Vote, 
+  Vote,
   LogOut, 
   Settings, 
   Plus, 
