@@ -1149,10 +1149,13 @@ const PositionManager = ({ onUpdate }: { onUpdate: () => void }) => {
   };
 
 return (
-    <div className="space-y-10">
-      <h3 className="text-2xl font-black text-slate-800 tracking-tight">
-        Manage Positions
-      </h3>
+<div className="space-y-10">
+  <h3 className="text-2xl font-black text-slate-800 tracking-tight">
+    Manage Positions
+  </h3>
+</div>
+);
+};
 
       <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <input
