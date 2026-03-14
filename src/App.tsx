@@ -1449,7 +1449,7 @@ const HomeManager = ({ content, onUpdate }: { content: HomeContent[], onUpdate: 
   );
 };
 
-const VotingForm = ({ candidates, user, restriction, onVote, isAdmin, partylists, onDeleteCandidate }: { candidates: Candidate[], user: Student | null, restriction: string, onVote: () => void, isAdmin: boolean, partylists: Partylist[], onDeleteCandidate: (id:number)=>void }) => {
+const VotingForm = ({ candidates, user, restriction, onVote, isAdmin, partylists, onDeleteCandidate }: { candidates: Candidate[], user: Student | null, restriction: string, onVote: () => void, isAdmin: boolean, partylists: Partylist[], onDeleteCandidate: (id: number)=>void }) => {
   const [selectedVotes, setSelectedVotes] = useState<Record<string, number>>({});
   const [submitting, setSubmitting] = useState(false);
 
