@@ -1148,6 +1148,65 @@ const PositionManager = ({ onUpdate }: { onUpdate: () => void }) => {
     }
   };
 
-  return (
+return (
     <div className="space-y-10">
-      <h3 className="text-2xl font-black text-slate-800 tracking-tight
+      <h3 className="text-2xl font-black text-slate-800 tracking-tight">
+        Manage Positions
+      </h3>
+
+      <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <input
+          placeholder="Position Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 outline-none font-bold text-slate-700"
+          required
+        />
+
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 outline-none font-bold text-slate-700"
+        >
+          <option value="Executive">Executive</option>
+          <option value="Judiciary">Judiciary</option>
+          <option value="Legislative">Legislative</option>
+          <option value="Ministries">Ministries</option>
+          <option value="Departmental">Departmental</option>
+          <option value="Teacher Servant">Teacher Servant</option>
+          <option value="Sister Servant">Sister Servant</option>
+        </select>
+
+        <button
+          type="submit"
+          className="flowy-button bg-blue-900 text-white"
+        >
+          Add Position
+        </button>
+      </form>
+
+      <div className="space-y-4">
+        {positions.map((p) => (
+          <div
+            key={p.id}
+            className="flex items-center justify-between p-6 bg-slate-50 rounded-2xl border border-slate-100"
+          >
+            <div>
+              <p className="font-black text-slate-800">{p.name}</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                {p.category}
+              </p>
+            </div>
+
+            <button
+              onClick={() => handleDelete(p.id)}
+              className="text-red-400 hover:text-red-600 transition"
+            >
+              <XCircle className="w-6 h-6" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
