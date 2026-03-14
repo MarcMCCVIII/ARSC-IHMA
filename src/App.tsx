@@ -118,7 +118,7 @@ interface Suggestion {
   category: string;
   content: string;
   is_anonymous: boolean;
-  student_id?: number;
+  student_number?: number;
   created_at: string;
   students?: {
     name: string;
@@ -263,7 +263,7 @@ const SuggestionsView = ({ studentId }: { studentId?: number }) => {
       const res = await fetch('https://ihma-backend.onrender.com/api/suggestions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, student_id: studentId })
+        body: JSON.stringify({ ...formData, student_number: studentId })
       });
       if (res.ok) {
         setStatus('success');
@@ -1503,7 +1503,7 @@ const VotingForm = ({ candidates, user, restriction, onVote, isAdmin, partylists
     await fetch('https://ihma-backend.onrender.com/api/vote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ student_id: user?.id, votes })
+      body: JSON.stringify({ student_number: user?.id, votes })
     });
     onVote();
     setSubmitting(false);
