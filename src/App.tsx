@@ -26,7 +26,9 @@ import {
   Target,
   Compass,
   Heart,
-  MessageSquare
+  MessageSquare,
+  Edit2,
+  Ban
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -582,6 +584,7 @@ const Login = ({ onLogin, logos }: { onLogin: (role: 'admin' | 'student', data?:
                 animate={{ width: '100%' }}
                 transition={{ delay: 0.6 }}
               />
+              <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px] mt-1">Student Council Portal</p>
             </div>
             {logos.logo2 && (
               <motion.img 
@@ -595,7 +598,6 @@ const Login = ({ onLogin, logos }: { onLogin: (role: 'admin' | 'student', data?:
               />
             )}
           </div>
-          <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px] mt-4">Student Council Portal</p>
         </div>
 
         <div className="flex mb-8 bg-slate-100 p-1.5 rounded-2xl">
@@ -831,6 +833,7 @@ export default function App() {
   const [editingNews, setEditingNews] = useState<News | null>(null);
   const [editingOfficer, setEditingOfficer] = useState<Officer | null>(null);
   const [editingMemory, setEditingMemory] = useState<Memory | null>(null);
+  const [editingCandidate, setEditingCandidate] = useState<Candidate | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
@@ -945,9 +948,9 @@ export default function App() {
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-4">
             {logos.logo1 && <img src={logos.logo1} alt="Logo 1" className="h-14 w-14 object-contain" referrerPolicy="no-referrer" />}
-            <div>
+            <div className="text-center">
               <h1 className="text-2xl font-sans font-black text-blue-900 leading-none tracking-tight">ARSC - IHMA</h1>
-              <p className="text-[10px] text-slate-400 uppercase tracking-[0.3em] mt-1 font-black">Student Council</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-[0.3em] mt-0.5 font-black">Student Council</p>
             </div>
             {logos.logo2 && <img src={logos.logo2} alt="Logo 2" className="h-14 w-14 object-contain" referrerPolicy="no-referrer" />}
           </div>
@@ -1249,7 +1252,7 @@ export default function App() {
 
               {activeTab === 'voting' && (
                 <div className="max-w-3xl mx-auto">
-                  <h2 className="text-5xl font-sans font-black text-blue-900 mb-12 tracking-tight">Voting Portal</h2>
+                  <h2 className="text-5xl font-sans font-black text-blue-900 mb-12 tracking-tight text-center">Voting Portal</h2>
                   {!isAdmin && user?.has_voted ? (
                     <motion.div 
                       initial={{ scale: 0.95 }}
@@ -1270,6 +1273,7 @@ export default function App() {
                       partylists={partylists}
                       onDelete={(id) => handleDelete('candidates', id)}
                       onZoom={setZoomedImage}
+                      onEdit={setEditingCandidate}
                     />
                   )}
                 </div>
@@ -1296,6 +1300,8 @@ export default function App() {
                   inquiries={inquiries}
                   suggestions={suggestions}
                   onZoom={setZoomedImage}
+                  editingCandidate={editingCandidate}
+                  setEditingCandidate={setEditingCandidate}
                 />
               )}
             </motion.div>
@@ -1333,6 +1339,20 @@ export default function App() {
         <AddMemory 
           onComplete={() => { setEditingMemory(null); fetchData(); }} 
           initialData={editingMemory?.id ? editingMemory : undefined} 
+        />
+      </Modal>
+
+      <Modal 
+        isOpen={!!editingCandidate} 
+        onClose={() => setEditingCandidate(null)} 
+        title="Edit Candidate"
+      >
+        <CandidateForm 
+          initialData={editingCandidate || undefined} 
+          onComplete={() => {
+            fetchData();
+            setEditingCandidate(null);
+          }} 
         />
       </Modal>
 
@@ -1454,8 +1474,8 @@ const HomeManager = ({ content, onUpdate }: { content: HomeContent[], onUpdate: 
   );
 };
 
-const VotingForm = ({ candidates, user, restriction, onVote, isAdmin, partylists, onDelete, onZoom }: { candidates: Candidate[], user: Student | null, restriction: string, onVote: () => void, isAdmin: boolean, partylists: Partylist[], onDelete?: (id: number) => void, onZoom?: (url: string) => void }) => {
-  const [selectedVotes, setSelectedVotes] = useState<Record<string, number>>({});
+const VotingForm = ({ candidates, user, restriction, onVote, isAdmin, partylists, onDelete, onZoom, onEdit }: { candidates: Candidate[], user: Student | null, restriction: string, onVote: () => void, isAdmin: boolean, partylists: Partylist[], onDelete?: (id: number) => void, onZoom?: (url: string) => void, onEdit?: (c: Candidate) => void }) => {
+  const [selectedVotes, setSelectedVotes] = useState<Record<string, number[]>>({});
   const [submitting, setSubmitting] = useState(false);
 
   // Filter candidates based on individual voting restriction
@@ -1472,7 +1492,14 @@ const VotingForm = ({ candidates, user, restriction, onVote, isAdmin, partylists
   const handleVote = async () => {
     if (isAdmin) return alert("Admins cannot vote.");
     setSubmitting(true);
-    const votes = Object.entries(selectedVotes).map(([pos, id]) => ({ position: pos, candidate_id: id }));
+    const votes: { position: string, candidate_id: number }[] = [];
+    Object.entries(selectedVotes).forEach(([pos, ids]) => {
+      (ids as number[]).forEach(id => {
+        if (id !== -1) { // -1 is Abstain
+          votes.push({ position: pos, candidate_id: id });
+        }
+      });
+    });
     await fetch('https://ihma-backend.onrender.com/api/vote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1484,17 +1511,17 @@ const VotingForm = ({ candidates, user, restriction, onVote, isAdmin, partylists
 
   return (
     <div className="space-y-12 pb-20">
-      {/* Part 1: Partylist Platforms */}
+      {/* Part 1: Party Logo */}
       {partylistPlatforms.length > 0 && (
         <div className="space-y-6">
           <div className="text-center">
-            <h3 className="text-2xl font-black text-blue-900 tracking-tight">Partylist Platforms</h3>
+            <h3 className="text-2xl font-black text-blue-900 tracking-tight">Party Logo</h3>
             <div className="h-1 w-12 bg-red-600 mx-auto mt-2 rounded-full" />
           </div>
-          <div className="grid gap-6">
+          <div className="flex flex-wrap justify-center gap-6">
             {partylistPlatforms.map((p) => (
-              <div key={p.id} className="flowy-card overflow-hidden">
-                <div className="bg-blue-800 px-6 py-3 text-white font-black tracking-tight">{p.name} Platform</div>
+              <div key={p.id} className="flowy-card overflow-hidden w-full max-w-[300px]">
+                <div className="bg-blue-800 px-6 py-3 text-white font-black tracking-tight text-center text-xs uppercase">{p.name} Party Logo</div>
                 <img src={p.platform_image_url} className="w-full h-auto" referrerPolicy="no-referrer" />
               </div>
             ))}
@@ -1521,69 +1548,141 @@ const VotingForm = ({ candidates, user, restriction, onVote, isAdmin, partylists
                 <div className="h-1 w-12 bg-red-600 mx-auto mt-2 rounded-full" />
               </div>
               
-              {positions.map(pos => (
-                <div key={pos} className="flowy-card p-8">
-                  <h4 className="text-xl font-black mb-6 text-slate-800 border-b border-slate-100 pb-3 tracking-tight">{pos}</h4>
-                  <div className="space-y-4">
-                    {catCandidates.filter(c => c.position === pos).map(c => (
-                      <label key={c.id} className={cn(
+              {positions.map(pos => {
+                const isSenator = pos.toLowerCase().includes('senator');
+                const maxVotes = isSenator ? 2 : 1;
+                const posCandidates = catCandidates.filter(c => c.position === pos);
+                
+                return (
+                  <div key={pos} className="flowy-card p-8">
+                    <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-3">
+                      <h4 className="text-xl font-black text-slate-800 tracking-tight">{pos}</h4>
+                      {isSenator && <span className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-3 py-1 rounded-full tracking-widest">Select up to 2</span>}
+                    </div>
+                    <div className="space-y-4">
+                      {posCandidates.map(c => {
+                        const isSelected = selectedVotes[pos]?.includes(c.id);
+                        return (
+                          <label key={c.id} className={cn(
+                            "flex items-center justify-between p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300",
+                            isSelected 
+                              ? "border-blue-800 bg-blue-50/50 shadow-md" 
+                              : "border-slate-100 hover:border-blue-200 hover:bg-slate-50"
+                          )}>
+                            <div className="flex items-center gap-4">
+                              <div className={cn(
+                                "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0",
+                                isSelected ? "border-blue-800 bg-blue-800" : "border-slate-300"
+                              )}>
+                                {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
+                              </div>
+                              {c.image_url && (
+                                <img 
+                                  src={c.image_url} 
+                                  alt={c.name} 
+                                  className="w-12 h-12 rounded-xl object-cover border-2 border-white shadow-sm cursor-zoom-in" 
+                                  referrerPolicy="no-referrer"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    onZoom?.(c.image_url!);
+                                  }}
+                                />
+                              )}
+                              <input 
+                                type={maxVotes > 1 ? "checkbox" : "radio"}
+                                name={pos} 
+                                checked={isSelected}
+                                onChange={() => {
+                                  setSelectedVotes(prev => {
+                                    const current = prev[pos] || [];
+                                    if (current.includes(c.id)) {
+                                      return { ...prev, [pos]: current.filter(id => id !== c.id) };
+                                    }
+                                    if (current.includes(-1)) { // If Abstain was selected, remove it
+                                      return { ...prev, [pos]: [c.id] };
+                                    }
+                                    if (current.length < maxVotes) {
+                                      return { ...prev, [pos]: [...current, c.id] };
+                                    }
+                                    if (maxVotes === 1) {
+                                      return { ...prev, [pos]: [c.id] };
+                                    }
+                                    return prev;
+                                  });
+                                }}
+                                className="hidden"
+                              />
+                              <div>
+                                <span className="font-bold text-slate-700 block">{c.name}</span>
+                                <span className="text-[10px] font-black uppercase text-blue-800 tracking-widest">{c.partylist_name || 'Independent'}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <span className="text-xs font-black uppercase text-slate-400 tracking-widest">{c.grade_level}</span>
+                              {isAdmin && (
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      onEdit?.(c);
+                                    }}
+                                    className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      onDelete?.(c.id);
+                                    }}
+                                    className="p-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all"
+                                  >
+                                    <XCircle className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </label>
+                        );
+                      })}
+                      
+                      {/* Abstain Option */}
+                      <label className={cn(
                         "flex items-center justify-between p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300",
-                        selectedVotes[pos] === c.id 
-                          ? "border-blue-800 bg-blue-50/50 shadow-md" 
-                          : "border-slate-100 hover:border-blue-200 hover:bg-slate-50"
+                        selectedVotes[pos]?.includes(-1)
+                          ? "border-amber-600 bg-amber-50/50 shadow-md" 
+                          : "border-slate-100 hover:border-amber-200 hover:bg-slate-50"
                       )}>
                         <div className="flex items-center gap-4">
                           <div className={cn(
                             "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0",
-                            selectedVotes[pos] === c.id ? "border-blue-800 bg-blue-800" : "border-slate-300"
+                            selectedVotes[pos]?.includes(-1) ? "border-amber-600 bg-amber-600" : "border-slate-300"
                           )}>
-                            {selectedVotes[pos] === c.id && <div className="w-2 h-2 bg-white rounded-full" />}
+                            {selectedVotes[pos]?.includes(-1) && <div className="w-2 h-2 bg-white rounded-full" />}
                           </div>
-                          {c.image_url && (
-                            <img 
-                              src={c.image_url} 
-                              alt={c.name} 
-                              className="w-12 h-12 rounded-xl object-cover border-2 border-white shadow-sm cursor-zoom-in" 
-                              referrerPolicy="no-referrer"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onZoom?.(c.image_url!);
-                              }}
-                            />
-                          )}
+                          <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center">
+                            <Ban className="w-6 h-6 text-slate-400" />
+                          </div>
                           <input 
-                            type="radio" 
+                            type="radio"
                             name={pos} 
-                            checked={selectedVotes[pos] === c.id}
-                            onChange={() => setSelectedVotes(prev => ({ ...prev, [pos]: c.id }))}
+                            checked={selectedVotes[pos]?.includes(-1)}
+                            onChange={() => setSelectedVotes(prev => ({ ...prev, [pos]: [-1] }))}
                             className="hidden"
                           />
                           <div>
-                            <span className="font-bold text-slate-700 block">{c.name}</span>
-                            <span className="text-[10px] font-black uppercase text-blue-800 tracking-widest">{c.partylist_name || 'Independent'}</span>
+                            <span className="font-bold text-slate-700 block">Abstain</span>
+                            <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">No Vote for this position</span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                          <span className="text-xs font-black uppercase text-slate-400 tracking-widest">{c.grade_level}</span>
-                          {isAdmin && (
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onDelete?.(c.id);
-                              }}
-                              className="p-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
                       </label>
-                    ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           );
         })
@@ -1617,7 +1716,9 @@ const AdminPanel = ({
   homeContent,
   inquiries,
   suggestions,
-  onZoom
+  onZoom,
+  editingCandidate,
+  setEditingCandidate
 }: { 
   onUpdate: () => void, 
   logos: any, 
@@ -1633,10 +1734,14 @@ const AdminPanel = ({
   homeContent: HomeContent[],
   inquiries: Inquiry[],
   suggestions: Suggestion[],
-  onZoom?: (url: string) => void
+  onZoom?: (url: string) => void,
+  editingCandidate: Candidate | null,
+  setEditingCandidate: (c: Candidate | null) => void
 }) => {
   const [activeSubTab, setActiveSubTab] = useState('news');
   const [showResultPresenter, setShowResultPresenter] = useState(false);
+  const [yearFilter, setYearFilter] = useState('All');
+  const [sectionFilter, setSectionFilter] = useState('All');
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>, key: string) => {
     const file = e.target.files?.[0];
@@ -1689,7 +1794,7 @@ const AdminPanel = ({
               <PartylistManager onUpdate={onUpdate} />
             </div>
             <div className="border-t border-slate-100 pt-10">
-              <AddCandidate onComplete={onUpdate} />
+              <CandidateForm onComplete={onUpdate} />
             </div>
             {stats && (
               <div className="border-t border-slate-100 pt-10">
@@ -1798,7 +1903,7 @@ const AdminPanel = ({
                 <div className="mb-12">
                   <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6">Turnout by Grade Level</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                    {[4,5,6,7,8,9,10,11,12].map(grade => {
+                    {[3,4,5,6,7,8,9,10,11,12].map(grade => {
                       const gradeVoters = stats.voters.filter((v: any) => v.year === `Grade ${grade}`);
                       const gradeVoted = gradeVoters.filter((v: any) => v.has_voted).length;
                       const total = gradeVoters.length;
@@ -1867,7 +1972,25 @@ const AdminPanel = ({
               <div className="border-t border-slate-100 pt-10">
                 <div className="flex items-center justify-between mb-8">
                   <h3 className="text-xl font-bold text-slate-800">Voter Monitoring</h3>
-                  <div className="flex gap-4">
+                  <div className="flex flex-col md:flex-row gap-4">
+                    <select 
+                      value={yearFilter} 
+                      onChange={(e) => setYearFilter(e.target.value)}
+                      className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100"
+                    >
+                      <option value="All">All Years</option>
+                      {[7,8,9,10,11,12].map(y => <option key={y} value={`Grade ${y}`}>Grade {y}</option>)}
+                    </select>
+                    <select 
+                      value={sectionFilter} 
+                      onChange={(e) => setSectionFilter(e.target.value)}
+                      className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100"
+                    >
+                      <option value="All">All Sections</option>
+                      {Array.from(new Set(stats.voters.map((v: any) => v.section))).sort().map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
                     <button 
                       onClick={async () => {
                         if (confirm('Are you sure you want to reset ALL votes? This cannot be undone.')) {
@@ -1896,6 +2019,7 @@ const AdminPanel = ({
                   <table className="w-full text-left">
                     <thead>
                       <tr className="text-xs font-black uppercase text-slate-400 tracking-widest border-b border-slate-100">
+                        <th className="pb-6">Student ID (Password)</th>
                         <th className="pb-6">Name</th>
                         <th className="pb-6">Year & Section</th>
                         <th className="pb-6">Status</th>
@@ -1903,8 +2027,11 @@ const AdminPanel = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                      {stats.voters.map((v: any, i: number) => (
+                      {stats.voters
+                        .filter((v: any) => (yearFilter === 'All' || v.year === yearFilter) && (sectionFilter === 'All' || v.section === sectionFilter))
+                        .map((v: any, i: number) => (
                         <tr key={i} className="text-sm group hover:bg-slate-50 transition-colors">
+                          <td className="py-5 font-mono text-xs text-slate-400">{v.student_number}</td>
                           <td className="py-5 font-bold text-slate-700">{v.name || 'Not Registered'}</td>
                           <td className="py-5 text-slate-500 font-medium">{v.year} — {v.section}</td>
                           <td className="py-5">
@@ -2217,14 +2344,14 @@ const AddOfficer = ({ onComplete, initialData }: { onComplete: () => void, initi
   );
 };
 
-const AddCandidate = ({ onComplete }: { onComplete: () => void }) => {
-  const [name, setName] = useState('');
-  const [position, setPosition] = useState('');
-  const [grade, setGrade] = useState('');
-  const [partylistId, setPartylistId] = useState('');
-  const [category, setCategory] = useState('Executive');
-  const [termId, setTermId] = useState('');
-  const [votingRestriction, setVotingRestriction] = useState<string[]>([]);
+const CandidateForm = ({ onComplete, initialData }: { onComplete: () => void, initialData?: Candidate }) => {
+  const [name, setName] = useState(initialData?.name || '');
+  const [position, setPosition] = useState(initialData?.position || '');
+  const [grade, setGrade] = useState(initialData?.grade_level || '');
+  const [partylistId, setPartylistId] = useState(initialData?.partylist_id?.toString() || '');
+  const [category, setCategory] = useState(initialData?.category || 'Executive');
+  const [termId, setTermId] = useState(initialData?.term_id?.toString() || '');
+  const [votingRestriction, setVotingRestriction] = useState<string[]>(initialData?.voting_restriction ? initialData.voting_restriction.split(',') : []);
   const [image, setImage] = useState<File | null>(null);
   
   const [terms, setTerms] = useState<Term[]>([]);
@@ -2249,17 +2376,22 @@ const AddCandidate = ({ onComplete }: { onComplete: () => void }) => {
     formData.append('voting_restriction', votingRestriction.length > 0 ? votingRestriction.join(',') : 'everyone');
     if (image) formData.append('image', image);
 
-    await fetch('https://ihma-backend.onrender.com/api/candidates', { 
-      method: 'POST', 
+    const url = initialData?.id ? `https://ihma-backend.onrender.com/api/candidates/${initialData.id}` : 'https://ihma-backend.onrender.com/api/candidates';
+    const method = initialData?.id ? 'PUT' : 'POST';
+
+    await fetch(url, { 
+      method, 
       body: formData
     });
     onComplete();
-    setName(''); setPosition(''); setGrade(''); setImage(null);
+    if (!initialData) {
+      setName(''); setPosition(''); setGrade(''); setImage(null);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      <h3 className="text-2xl font-black text-slate-800 tracking-tight">Add Candidate</h3>
+      <h3 className="text-2xl font-black text-slate-800 tracking-tight">{initialData ? 'Edit Candidate' : 'Add Candidate'}</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <input placeholder="Candidate Name" value={name} onChange={e => setName(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required />
         <select value={category} onChange={e => setCategory(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-100 focus:border-blue-900 outline-none transition-all font-bold text-slate-700" required>
