@@ -1157,7 +1157,579 @@ Delete Candidate
                     ))}
                   </div>
                 </section>
-                {/* Add other admin sections here... */}
+                {const AddNews = ({ onComplete, initialData }: { onComplete: () => void, initialData?: News }) => {
+  const [title, setTitle] = useState(initialData?.title || '');
+  const [content, setContent] = useState(initialData?.content || '');
+  const [date, setDate] = useState(initialData?.date || '');
+  const [image, setImage] = useState<File | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('content', content);
+    formData.append('date', date);
+    if (image) formData.append('image', image);
+    
+    const url = initialData?.id ? `https://ihma-backend.onrender.com/api/news/${initialData.id}` : 'https://ihma-backend.onrender.com/api/news';
+    const method = initialData?.id ? 'PUT' : 'POST';
+    
+    const res = await fetch(url, { method, body: formData });
+    if (res.ok) {
+      onComplete();
+    } else {
+      alert('Failed to save news. Please try again.');
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <input placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required />
+      <textarea placeholder="Content" value={content} onChange={e => setContent(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700 h-48" required />
+      <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required />
+      <div className="p-8 border-2 border-dashed border-slate-100 rounded-2xl">
+        <input type="file" onChange={e => setImage(e.target.files?.[0] || null)} className="w-full text-sm text-slate-400 file:mr-6 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-black file:bg-blue-50 file:text-blue-900 hover:file:bg-blue-100 transition-all" />
+      </div>
+      <button type="submit" className="w-full flowy-button bg-blue-900 text-white hover:bg-blue-950">
+        {initialData?.id ? 'Update News' : 'Post News'}
+      </button>
+    </form>
+  );
+};
+
+const AddOfficer = ({ onComplete, initialData }: { onComplete: () => void, initialData?: Officer }) => {
+  const [name, setName] = useState(initialData?.name || '');
+  const [position, setPosition] = useState(initialData?.position || '');
+  const [category, setCategory] = useState(initialData?.category || 'Executive');
+  const [year, setYear] = useState(initialData?.year || '');
+  const [image, setImage] = useState<File | null>(null);
+  const [positions, setPositions] = useState<Position[]>([]);
+
+  useEffect(() => {
+    fetch('https://ihma-backend.onrender.com/api/positions').then(res => res.json()).then(setPositions);
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('position', position);
+    formData.append('category', category);
+    formData.append('year', year);
+    if (image) formData.append('image', image);
+    
+    const url = initialData?.id ? `https://ihma-backend.onrender.com/api/officers/${initialData.id}` : 'https://ihma-backend.onrender.com/api/officers';
+    const method = initialData?.id ? 'PUT' : 'POST';
+    
+    const res = await fetch(url, { method, body: formData });
+    if (res.ok) {
+      onComplete();
+    } else {
+      alert('Failed to save officer. Please try again.');
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <input placeholder="Name" value={name} onChange={e => setName(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required />
+        <select value={category} onChange={e => setCategory(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-100 focus:border-blue-900 outline-none transition-all font-bold text-slate-700" required>
+          <option value="Executive">Executive</option>
+          <option value="Judiciary">Judiciary</option>
+          <option value="Legislative">Legislative</option>
+          <option value="Ministries">Ministries</option>
+          <option value="Departmental">Departmental</option>
+          <option value="Teacher Servant">Teacher Servant</option>
+          <option value="Sister Servant">Sister Servant</option>
+        </select>
+        <select value={position} onChange={e => setPosition(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required>
+          <option value="">Select Position</option>
+          {positions.filter(p => p.category === category).map(p => (
+            <option key={p.id} value={p.name}>{p.name}</option>
+          ))}
+        </select>
+        <input placeholder="Year/Term" value={year} onChange={e => setYear(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required />
+      </div>
+      <div className="p-8 border-2 border-dashed border-slate-100 rounded-2xl">
+        <input type="file" onChange={e => setImage(e.target.files?.[0] || null)} className="w-full text-sm text-slate-400 file:mr-6 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-black file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all" />
+      </div>
+      <button type="submit" className="w-full flowy-button bg-blue-900 text-white hover:bg-blue-950">
+        {initialData?.id ? 'Update Officer' : 'Save Officer'}
+      </button>
+    </form>
+  );
+};
+
+const AddCandidate = ({ onComplete }: { onComplete: () => void }) => {
+  const [name, setName] = useState('');
+  const [position, setPosition] = useState('');
+  const [grade, setGrade] = useState('');
+  const [partylistId, setPartylistId] = useState('');
+  const [category, setCategory] = useState('Executive');
+  const [termId, setTermId] = useState('');
+  const [votingRestriction, setVotingRestriction] = useState<string[]>([]);
+  const [image, setImage] = useState<File | null>(null);
+  
+  const [terms, setTerms] = useState<Term[]>([]);
+  const [partylists, setPartylists] = useState<Partylist[]>([]);
+  const [positions, setPositions] = useState<Position[]>([]);
+
+  useEffect(() => {
+    fetch('https://ihma-backend.onrender.com/api/terms').then(res => res.json()).then(setTerms);
+    fetch('https://ihma-backend.onrender.com/api/partylists').then(res => res.json()).then(setPartylists);
+    fetch('https://ihma-backend.onrender.com/api/positions').then(res => res.json()).then(setPositions);
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('position', position);
+    formData.append('grade_level', grade);
+    formData.append('partylist_id', partylistId);
+    formData.append('category', category);
+    formData.append('term_id', termId);
+    formData.append('voting_restriction', votingRestriction.length > 0 ? votingRestriction.join(',') : 'everyone');
+    if (image) formData.append('image', image);
+
+    await fetch('https://ihma-backend.onrender.com/api/candidates', { 
+      method: 'POST', 
+      body: formData
+    });
+    onComplete();
+    setName(''); setPosition(''); setGrade(''); setImage(null);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-8">
+      <h3 className="text-2xl font-black text-slate-800 tracking-tight">Add Candidate</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <input placeholder="Candidate Name" value={name} onChange={e => setName(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required />
+        <select value={category} onChange={e => setCategory(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-100 focus:border-blue-900 outline-none transition-all font-bold text-slate-700" required>
+          <option value="Executive">Executive</option>
+          <option value="Legislative">Legislative</option>
+          <option value="Departmental">Departmental</option>
+          <option value="Judiciary">Judiciary</option>
+          <option value="Ministries">Ministries</option>
+          <option value="Teacher Servant">Teacher Servant</option>
+          <option value="Sister Servant">Sister Servant</option>
+        </select>
+        <select value={position} onChange={e => setPosition(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required>
+          <option value="">Select Position</option>
+          {positions.filter(p => p.category === category).map(p => (
+            <option key={p.id} value={p.name}>{p.name}</option>
+          ))}
+        </select>
+        <select 
+          value={grade} onChange={e => setGrade(e.target.value)} 
+          className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-100 focus:border-blue-900 outline-none transition-all font-bold text-slate-700" 
+          required
+        >
+          <option value="">Candidate Grade Level</option>
+          {[3,4,5,6,7,8,9,10,11,12].map(y => <option key={y} value={`Grade ${y}`}>Grade {y}</option>)}
+        </select>
+        <select value={partylistId} onChange={e => setPartylistId(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700">
+          <option value="">Independent</option>
+          {partylists.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        <select value={termId} onChange={e => setTermId(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required>
+          <option value="">Select Term</option>
+          {terms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </select>
+        <div className="p-4 border-2 border-dashed border-slate-100 rounded-2xl">
+          <p className="text-[10px] font-black uppercase text-slate-400 mb-2">Candidate Photo</p>
+          <input type="file" onChange={e => setImage(e.target.files?.[0] || null)} className="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-blue-50 file:text-blue-900 hover:file:bg-blue-100 transition-all" />
+        </div>
+        <div className="md:col-span-2 space-y-4">
+          <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] ml-1">Voting Restriction (Who can vote for this candidate?)</label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 p-6 bg-slate-50 rounded-2xl border border-slate-100">
+            <label className="flex items-center gap-3 cursor-pointer group">
+              <input 
+                type="checkbox" 
+                checked={votingRestriction.length === 0}
+                onChange={() => setVotingRestriction([])}
+                className="w-5 h-5 rounded border-slate-300 text-blue-900 focus:ring-blue-900"
+              />
+              <span className="text-sm font-bold text-slate-600 group-hover:text-blue-900 transition-colors">Everyone</span>
+            </label>
+            {[3,4,5,6,7,8,9,10,11,12].map(y => (
+              <label key={y} className="flex items-center gap-3 cursor-pointer group">
+                <input 
+                  type="checkbox" 
+                  checked={votingRestriction.includes(`Grade ${y}`)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setVotingRestriction(prev => [...prev, `Grade ${y}`]);
+                    } else {
+                      setVotingRestriction(prev => prev.filter(v => v !== `Grade ${y}`));
+                    }
+                  }}
+                  className="w-5 h-5 rounded border-slate-300 text-blue-900 focus:ring-blue-900"
+                />
+                <span className="text-sm font-bold text-slate-600 group-hover:text-blue-900 transition-colors">Grade {y}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+      <button type="submit" className="w-full flowy-button bg-blue-900 text-white hover:bg-blue-950">Add Candidate</button>
+    </form>
+  );
+};
+
+const AddMemory = ({ onComplete, initialData }: { onComplete: () => void, initialData?: Memory }) => {
+  const [caption, setCaption] = useState(initialData?.caption || '');
+  const [batch, setBatch] = useState(initialData?.batch || '');
+  const [image, setImage] = useState<File | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('caption', caption);
+    formData.append('batch', batch);
+    if (image) formData.append('image', image);
+    
+    const url = initialData?.id ? `https://ihma-backend.onrender.com/api/memories/${initialData.id}` : 'https://ihma-backend.onrender.com/api/memories';
+    const method = initialData?.id ? 'PUT' : 'POST';
+    
+    const res = await fetch(url, { method, body: formData });
+    if (res.ok) {
+      onComplete();
+    } else {
+      alert('Failed to save memory. Please try again.');
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-8">
+      <input placeholder="Caption (e.g. ARSC Officers)" value={caption} onChange={e => setCaption(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required />
+      <input placeholder="Batch (e.g. 2020-2021)" value={batch} onChange={e => setBatch(e.target.value)} className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" required />
+      <div className="p-8 border-2 border-dashed border-slate-100 rounded-2xl">
+        <input type="file" onChange={e => setImage(e.target.files?.[0] || null)} className="w-full text-sm text-slate-400 file:mr-6 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-black file:bg-blue-50 file:text-blue-900 hover:file:bg-blue-100 transition-all" />
+      </div>
+      <button type="submit" className="w-full flowy-button bg-blue-900 text-white hover:bg-blue-950">
+        {initialData?.id ? 'Update Memory' : 'Add Memory'}
+      </button>
+    </form>
+  );
+};
+
+const TermManager = ({ onUpdate }: { onUpdate: () => void }) => {
+  const [terms, setTerms] = useState<Term[]>([]);
+  const [name, setName] = useState('');
+
+  const fetchTerms = () => fetch('https://ihma-backend.onrender.com/api/terms').then(res => res.json()).then(setTerms);
+  useEffect(() => { fetchTerms(); }, []);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await fetch('https://ihma-backend.onrender.com/api/terms', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    });
+    setName(''); fetchTerms(); onUpdate();
+  };
+
+  const handleActivate = async (id: number) => {
+    await fetch(`https://ihma-backend.onrender.com/api/terms/${id}/activate`, { method: 'PUT' });
+    fetchTerms(); onUpdate();
+  };
+
+  const handleDelete = async (id: number) => {
+    await fetch(`https://ihma-backend.onrender.com/api/terms/${id}`, { method: 'DELETE' });
+    fetchTerms(); onUpdate();
+  };
+
+  return (
+    <div className="space-y-8">
+      <h3 className="text-2xl font-black text-slate-800 tracking-tight">Manage Voting Terms</h3>
+      <form onSubmit={handleAdd} className="flex gap-4">
+        <input placeholder="Term Name (e.g. 2024-2025)" value={name} onChange={e => setName(e.target.value)} className="flex-1 px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 outline-none font-bold text-slate-700" required />
+        <button type="submit" className="p-4 bg-blue-900 text-white rounded-2xl hover:bg-blue-950 transition-all"><Plus /></button>
+      </form>
+      <div className="space-y-4">
+        {terms.map(t => (
+          <div key={t.id} className="flex items-center justify-between p-6 bg-slate-50 rounded-2xl border border-slate-50">
+            <span className={cn("font-black tracking-tight", t.is_active ? "text-blue-900" : "text-slate-400")}>
+              {t.name} {t.is_active === 1 && <span className="ml-3 text-[10px] bg-blue-100 text-blue-900 px-3 py-1 rounded-full uppercase font-black tracking-widest">Active</span>}
+            </span>
+            <div className="flex gap-4">
+              {!t.is_active && (
+                <button onClick={() => handleActivate(t.id)} className="text-xs font-black uppercase tracking-widest text-blue-800 hover:text-blue-950 transition-all">Activate</button>
+              )}
+              <button onClick={() => handleDelete(t.id)} className="text-red-300 hover:text-red-500 transition-all"><XCircle className="w-6 h-6" /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const PositionManager = ({ onUpdate }: { onUpdate: () => void }) => {
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [name, setName] = useState('');
+  const [category, setCategory] = useState('Executive');
+
+  const fetchPositions = () => fetch('https://ihma-backend.onrender.com/api/positions').then(res => res.json()).then(setPositions);
+  useEffect(() => { fetchPositions(); }, []);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await fetch('https://ihma-backend.onrender.com/api/positions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, category })
+    });
+    setName(''); fetchPositions(); onUpdate();
+  };
+
+  const handleDelete = async (id: number) => {
+    const res = await fetch(`https://ihma-backend.onrender.com/api/positions/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (!data.success) {
+      alert(data.message);
+    } else {
+      fetchPositions(); onUpdate();
+    }
+  };
+
+  return (
+    <div className="space-y-10">
+      <h3 className="text-2xl font-black text-slate-800 tracking-tight">Manage Positions</h3>
+      <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-4">
+        <input placeholder="Position Name" value={name} onChange={e => setName(e.target.value)} className="flex-1 px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 outline-none font-bold text-slate-700" required />
+        <select value={category} onChange={e => setCategory(e.target.value)} className="px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 outline-none font-bold text-slate-700" required>
+          <option value="Executive">Executive</option>
+          <option value="Judiciary">Judiciary</option>
+          <option value="Legislative">Legislative</option>
+          <option value="Ministries">Ministries</option>
+          <option value="Departmental">Departmental</option>
+          <option value="Teacher Servant">Teacher Servant</option>
+          <option value="Sister Servant">Sister Servant</option>
+        </select>
+        <button type="submit" className="p-4 bg-blue-900 text-white rounded-2xl hover:bg-blue-950 transition-all"><Plus /></button>
+      </form>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+        {['Executive', 'Judiciary', 'Legislative', 'Ministries', 'Departmental', 'Teacher Servant', 'Sister Servant'].map(cat => (
+          <div key={cat} className="space-y-4">
+            <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] ml-1">{cat}</p>
+            <div className="space-y-3">
+              {positions.filter(p => p.category === cat).map(p => (
+                <div key={p.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-50">
+                  <span className="text-sm font-black text-slate-700 tracking-tight">{p.name}</span>
+                  <button onClick={() => handleDelete(p.id)} className="text-red-300 hover:text-red-500 transition-all"><XCircle className="w-5 h-5" /></button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const PartylistManager = ({ onUpdate }: { onUpdate: () => void }) => {
+  const [partylists, setPartylists] = useState<Partylist[]>([]);
+  const [name, setName] = useState('');
+  const [image, setImage] = useState<File | null>(null);
+
+  const fetchPartylists = () => fetch('https://ihma-backend.onrender.com/api/partylists').then(res => res.json()).then(setPartylists);
+  useEffect(() => { fetchPartylists(); }, []);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData();
+    formData.append('name', name);
+    if (image) formData.append('platform_image', image);
+    
+    await fetch('https://ihma-backend.onrender.com/api/partylists', { method: 'POST', body: formData });
+    setName(''); setImage(null); fetchPartylists(); onUpdate();
+  };
+
+  const handleDelete = async (id: number) => {
+    await fetch(`https://ihma-backend.onrender.com/api/partylists/${id}`, { method: 'DELETE' });
+    fetchPartylists(); onUpdate();
+  };
+
+  return (
+    <div className="space-y-10">
+      <h3 className="text-2xl font-black text-slate-800 tracking-tight">Manage Partylists</h3>
+      <form onSubmit={handleAdd} className="space-y-8">
+        <div className="flex gap-4">
+          <input placeholder="Partylist Name" value={name} onChange={e => setName(e.target.value)} className="flex-1 px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 outline-none font-bold text-slate-700 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 transition-all" required />
+          <button type="submit" className="p-4 bg-blue-900 text-white rounded-2xl hover:bg-blue-950 transition-all"><Plus /></button>
+        </div>
+        <div className="p-8 border-2 border-dashed border-slate-100 rounded-2xl">
+          <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-4">Platform Image (Optional)</p>
+          <input type="file" onChange={e => setImage(e.target.files?.[0] || null)} className="w-full text-sm text-slate-400 file:mr-6 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-sm file:font-black file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all" />
+        </div>
+      </form>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {partylists.map(p => (
+          <div key={p.id} className="flex items-center justify-between p-6 bg-slate-50 rounded-2xl border border-slate-50 group hover:border-blue-100 transition-all">
+            <div className="flex items-center gap-4">
+              <span className="font-black text-slate-700 tracking-tight">{p.name}</span>
+              {p.platform_image_url && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full uppercase font-black tracking-widest">Platform</span>}
+            </div>
+            <button onClick={() => handleDelete(p.id)} className="text-red-300 hover:text-red-500 transition-all"><XCircle className="w-6 h-6" /></button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const ChangePassword = () => {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) return alert("Passwords do not match");
+    
+    setLoading(true);
+    const res = await fetch('https://ihma-backend.onrender.com/api/settings/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+    const data = await res.json();
+    setLoading(false);
+    
+    if (data.success) {
+      alert("Password changed successfully");
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } else {
+      alert(data.message);
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      <h3 className="text-2xl font-black text-slate-800 tracking-tight">Change Admin Password</h3>
+      <form onSubmit={handleSubmit} className="space-y-6 max-w-md">
+        <div className="space-y-2">
+          <label className="text-xs font-black uppercase text-slate-400 tracking-widest ml-1">Current Password</label>
+          <input 
+            type="password" 
+            value={currentPassword} 
+            onChange={e => setCurrentPassword(e.target.value)} 
+            className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-100 focus:border-blue-900 outline-none transition-all font-bold text-slate-700" 
+            required 
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-xs font-black uppercase text-slate-400 tracking-widest ml-1">New Password</label>
+          <input 
+            type="password" 
+            value={newPassword} 
+            onChange={e => setNewPassword(e.target.value)} 
+            className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-100 focus:border-blue-900 outline-none transition-all font-bold text-slate-700" 
+            required 
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-xs font-black uppercase text-slate-400 tracking-widest ml-1">Confirm New Password</label>
+          <input 
+            type="password" 
+            value={confirmPassword} 
+            onChange={e => setConfirmPassword(e.target.value)} 
+            className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-100 focus:border-blue-900 outline-none transition-all font-bold text-slate-700" 
+            required 
+          />
+        </div>
+        <button 
+          type="submit" 
+          disabled={loading}
+          className="w-full flowy-button bg-blue-900 text-white hover:bg-blue-950 disabled:opacity-50"
+        >
+          {loading ? 'Updating...' : 'Update Password'}
+        </button>
+      </form>
+    </div>
+  );
+};
+
+const SectionManager = ({ onUpdate }: { onUpdate: () => void }) => {
+  const [sections, setSections] = useState<any[]>([]);
+  const [year, setYear] = useState('');
+  const [name, setName] = useState('');
+
+  useEffect(() => {
+    fetch('https://ihma-backend.onrender.com/api/sections').then(res => res.json()).then(setSections);
+  }, []);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await fetch('https://ihma-backend.onrender.com/api/sections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year, name })
+    });
+    setYear(''); setName('');
+    const res = await fetch('https://ihma-backend.onrender.com/api/sections');
+    setSections(await res.json());
+    onUpdate();
+  };
+
+  const handleDelete = async (id: number) => {
+    await fetch(`https://ihma-backend.onrender.com/api/sections/${id}`, { method: 'DELETE' });
+    const res = await fetch('https://ihma-backend.onrender.com/api/sections');
+    setSections(await res.json());
+    onUpdate();
+  };
+
+  return (
+    <div className="space-y-12">
+      <form onSubmit={handleAdd} className="space-y-8">
+        <h3 className="text-2xl font-black text-slate-800 tracking-tight">Add New Section</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <select 
+            value={year} onChange={e => setYear(e.target.value)}
+            className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" 
+            required
+          >
+            <option value="">Select Year</option>
+            {[3,4,5,6,7,8,9,10,11,12].map(y => <option key={y} value={`Grade ${y}`}>Grade {y}</option>)}
+          </select>
+          <input 
+            placeholder="Section Name (e.g. St. Jude)" 
+            value={name} onChange={e => setName(e.target.value)} 
+            className="w-full px-6 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-4 focus:ring-blue-50 focus:border-blue-500 outline-none transition-all font-bold text-slate-700" 
+            required 
+          />
+        </div>
+        <button type="submit" className="w-full flowy-button bg-blue-900 text-white hover:bg-blue-950">Add Section</button>
+      </form>
+
+      <div className="border-t border-slate-100 pt-12">
+        <h3 className="text-2xl font-black mb-10 text-slate-800 tracking-tight">Manage Sections</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {sections.map(s => (
+            <div key={s.id} className="flex items-center justify-between p-6 bg-slate-50 rounded-2xl border border-slate-50 group hover:border-blue-100 transition-all">
+              <div>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">{s.year}</p>
+                <p className="font-black text-slate-700 tracking-tight">{s.name}</p>
+              </div>
+              <button 
+                onClick={() => handleDelete(s.id)}
+                className="p-2 text-red-200 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};}
               </div>
             )}
           </motion.div>
