@@ -1265,6 +1265,7 @@ export default function App() {
                       onVote={() => { fetchData(); setUser(prev => prev ? { ...prev, has_voted: 1 } : null); }}
                       isAdmin={isAdmin}
                       partylists={partylists}
+                      onDeleteCandidate={(id:number)=>handleDelete('candidates', id)}
                     />
                   )}
                 </div>
@@ -1448,7 +1449,7 @@ const HomeManager = ({ content, onUpdate }: { content: HomeContent[], onUpdate: 
   );
 };
 
-const VotingForm = ({ candidates, user, restriction, onVote, isAdmin, partylists }: { candidates: Candidate[], user: Student | null, restriction: string, onVote: () => void, isAdmin: boolean, partylists: Partylist[] }) => {
+const VotingForm = ({ candidates, user, restriction, onVote, isAdmin, partylists, onDeleteCandidate }: { candidates: Candidate[], user: Student | null, restriction: string, onVote: () => void, isAdmin: boolean, partylists: Partylist[], onDeleteCandidate: (id:number)=>void }) => {
   const [selectedVotes, setSelectedVotes] = useState<Record<string, number>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -1712,29 +1713,39 @@ const AdminPanel = ({
                                   "p-5 rounded-2xl flex items-center justify-between",
                                   idx === 0 ? "bg-blue-800 text-white shadow-lg shadow-blue-100" : "bg-slate-50 text-slate-700"
                                 )}>
-                                  <div className="flex items-center gap-4">
-                                    <div className={cn(
-                                      "w-8 h-8 rounded-full flex items-center justify-center font-black text-xs shrink-0",
-                                      idx === 0 ? "bg-white/20" : "bg-slate-200"
-                                    )}>
-                                      {idx + 1}
+                                <div className="flex items-center gap-4">
+                                  {c.image_url && (
+                                        <img
+                                          src={c.image_url}
+                                          alt={c.name}
+                                          className="w-12 h-12 rounded-xl object-cover border-2 border-white shadow-sm cursor-zoom-in"
+                                          onClick={(e)=>{
+                                            e.preventDefault()
+                                            window.open(c.image_url, "_blank")
+                                          }}
+                                        />
+                                      )}
+                                    
+                                      <div>
+                                        <span className="font-bold text-slate-700 block">{c.name}</span>
+                                        <span className="text-[10px] font-black uppercase text-blue-800 tracking-widest">
+                                          {c.partylist_name || "Independent"}
+                                        </span>
+                                      </div>
                                     </div>
-                                    {c.image_url && (
-                                      <img 
-                                        src={c.image_url} 
-                                        alt={c.name} 
-                                        className="w-12 h-12 rounded-xl object-cover border-2 border-white/20" 
-                                        referrerPolicy="no-referrer"
-                                      />
-                                    )}
-                                    <div>
-                                      <p className="font-black tracking-tight">{c.name}</p>
-                                      <p className={cn(
-                                        "text-[10px] font-black uppercase tracking-widest",
-                                        idx === 0 ? "text-white/60" : "text-slate-400"
-                                      )}>{c.partylist_name || 'Independent'}</p>
-                                    </div>
-                                  </div>
+                                  
+                                   {isAdmin && (
+                                    <button
+                                      onClick={(e)=>{
+                                        e.preventDefault()
+                                        onDeleteCandidate(c.id)
+                                      }}
+                                      className="p-2 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all"
+                                    >
+                                      <XCircle className="w-5 h-5"/>
+                                    </button>
+                                  )}
+                                                                    
                                   <div className="text-right">
                                     <p className="font-black text-xl">{c.votes}</p>
                                     <p className={cn(
