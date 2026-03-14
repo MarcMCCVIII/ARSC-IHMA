@@ -1,4 +1,3 @@
-import cors from "cors";
 import express from "express";
 import "dotenv/config";
 import { createServer as createViteServer } from "vite";
@@ -27,17 +26,7 @@ const supabase = createClient(supabaseUrl || "", supabaseKey || "");
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT || 3000;
-
-  app.use(
-    cors({
-      origin: ["https://www.ihmaarsc.online"],
-      methods: ["GET", "POST", "PUT", "DELETE"],
-      allowedHeaders: ["Content-Type"],
-    })
-  );
-
-  app.options("*", cors());
+  const PORT = 3000;
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
@@ -478,6 +467,28 @@ async function startServer() {
     res.json({ success: true });
   });
 
+  app.put("/api/candidates/:id", upload.single("image"), async (req, res) => {
+    const { name, position, grade_level, partylist_id, category, term_id, voting_restriction } = req.body;
+    const updateData: any = {
+      name, position, grade_level, 
+      partylist_id: partylist_id || null, 
+      category, term_id, 
+      voting_restriction: voting_restriction || 'everyone'
+    };
+
+    if (req.file) {
+      try {
+        updateData.image_url = await uploadToSupabase(req.file);
+      } catch (err: any) {
+        return res.status(500).json({ success: false, message: "Upload failed: " + err.message });
+      }
+    }
+
+    const { error } = await supabase.from('candidates').update(updateData).eq('id', req.params.id);
+    if (error) return res.status(500).json({ success: false, message: error.message });
+    res.json({ success: true });
+  });
+
   app.post("/api/vote", async (req, res) => {
     const { student_id, votes } = req.body;
     
@@ -505,15 +516,19 @@ async function startServer() {
     const { count: totalStudents } = await supabase.from('students').select('*', { count: 'exact', head: true });
     const { count: votedCount } = await supabase.from('students').select('*', { count: 'exact', head: true }).eq('has_voted', true);
     
-    const { data: candidates } = await supabase.from('candidates').select('*');
+    const { data: candidates } = await supabase.from('candidates').select('*, partylists(name)');
     const { data: votes } = await supabase.from('votes').select('candidate_id');
     
     const results = candidates?.map(c => {
       const count = votes?.filter(v => v.candidate_id === c.id).length || 0;
-      return { ...c, votes: count };
+      return { 
+        ...c, 
+        votes: count,
+        partylist_name: c.partylists?.name || 'Independent'
+      };
     }) || [];
     
-    const { data: voters } = await supabase.from('students').select('id, name, year, section, has_voted');
+    const { data: voters } = await supabase.from('students').select('id, name, year, section, has_voted, student_number');
     
     res.json({ totalStudents, votedCount, results, voters });
   });
