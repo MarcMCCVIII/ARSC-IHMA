@@ -1798,7 +1798,7 @@ const AdminPanel = ({
                 <div className="mb-12">
                   <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6">Turnout by Grade Level</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                    {[7,8,9,10,11,12].map(grade => {
+                    {[4,5,6,7,8,9,10,11,12].map(grade => {
                       const gradeVoters = stats.voters.filter((v: any) => v.year === `Grade ${grade}`);
                       const gradeVoted = gradeVoters.filter((v: any) => v.has_voted).length;
                       const total = gradeVoters.length;
