@@ -1068,34 +1068,54 @@ export default function App() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {candidates.map(candidate => (
-                    <div key={candidate.id} className="flowy-card p-6 flex flex-col items-center group">
-                      <div 
-                        className="relative w-full mb-6 cursor-zoom-in overflow-hidden rounded-2xl shadow-lg aspect-square"
-                        onClick={() => setZoomedImage(candidate.image_url || null)}
-                      >
-                        <img 
-                          src={candidate.image_url || 'https://via.placeholder.com/300?text=Candidate'} 
-                          alt={candidate.name}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          referrerPolicy="no-referrer"
-                        />
-                        <div className="absolute inset-0 bg-blue-900/0 group-hover:bg-blue-900/10 transition-colors flex items-center justify-center">
-                           <Eye className="text-white opacity-0 group-hover:opacity-100 w-10 h-10 transition-opacity" />
-                        </div>
-                      </div>
-                      <h3 className="text-2xl font-black text-slate-800 mb-1">{candidate.name}</h3>
-                      <p className="text-blue-600 font-black uppercase tracking-widest text-xs mb-4">{candidate.position}</p>
-                      <p className="text-slate-400 font-bold mb-6 italic">Partylist: {candidate.partylist_name || 'Independent'}</p>
-                      
-                      {!isAdmin && user && user.has_voted === 0 && (
-                         <button className="w-full flowy-button bg-blue-900 text-white">Cast Vote</button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+<div key={candidate.id} className="flowy-card p-6 flex flex-col items-center group">
 
+{/* Candidate Image */}
+<div
+className="relative w-full mb-6 cursor-pointer overflow-hidden rounded-2xl shadow-lg aspect-square"
+onClick={() => setZoomedImage(candidate.image_url || null)}
+
+<img
+src={candidate.image_url || 'https://via.placeholder.com/300?text=Candidate'}
+alt={candidate.name}
+className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+referrerPolicy="no-referrer"
+/>
+
+<div className="absolute inset-0 bg-black/0 hover:bg-black/20 flex items-center justify-center transition-all">
+<Eye className="text-white opacity-0 group-hover:opacity-100 w-10 h-10 transition-opacity"/>
+</div>
+</div>
+
+<h3 className="text-2xl font-black text-slate-800 mb-1">{candidate.name}</h3>
+
+<p className="text-blue-600 font-black uppercase tracking-widest text-xs mb-2">
+{candidate.position}
+</p>
+
+<p className="text-slate-400 font-bold italic mb-4">
+Partylist: {candidate.partylist_name || 'Independent'}
+</p>
+
+{/* STUDENT VOTE BUTTON */}
+{!isAdmin && user && user.has_voted === 0 && (
+<button className="w-full flowy-button bg-blue-900 text-white">
+Cast Vote
+</button>
+)}
+
+{/* ADMIN DELETE BUTTON */}
+{isAdmin && (
+<button
+onClick={() => handleDelete('candidates', candidate.id)}
+className="mt-3 px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition"
+
+Delete Candidate
+</button>
+)}
+
+</div>
+))}
             {activeTab === 'admin' && isAdmin && (
               <div className="max-w-6xl mx-auto space-y-12 pb-20">
                 <div className="text-center mb-16">
