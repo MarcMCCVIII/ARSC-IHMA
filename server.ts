@@ -26,16 +26,17 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl || "", supabaseKey || "");
 
 async function startServer() {
+  const express = require("express");
+  const cors = require("cors");
   const app = express();
-  const PORT = 3000;
 
   app.use(cors({
-    origin: "*",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    origin: ["https://www.ihmaarsc.online"],
+    credentials: true
   }));
 
   app.use(express.json());
+  app.post("/api/login", (req,res)=>{
   app.use(express.urlencoded({ extended: true }));
 
   // Multer setup for temporary storage before uploading to Supabase
