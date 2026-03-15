@@ -9,6 +9,8 @@ import {
   LogOut, 
   Settings, 
   Plus, 
+  ChevronUp,
+  ChevronDown,
   Upload, 
   ChevronRight,
   Camera,
@@ -60,6 +62,7 @@ interface Position {
   id: number;
   name: string;
   category: string;
+  order_index: number;
 }
 
 interface Student {
@@ -118,7 +121,7 @@ interface Suggestion {
   category: string;
   content: string;
   is_anonymous: boolean;
-  student_number?: number;
+  student_id?: number;
   created_at: string;
   students?: {
     name: string;
@@ -263,7 +266,7 @@ const SuggestionsView = ({ studentId }: { studentId?: number }) => {
       const res = await fetch('https://ihma-backend.onrender.com/api/suggestions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, student_number: studentId })
+        body: JSON.stringify({ ...formData, student_id: studentId })
       });
       if (res.ok) {
         setStatus('success');
@@ -527,6 +530,7 @@ const Login = ({ onLogin, logos }: { onLogin: (role: 'admin' | 'student', data?:
     e.preventDefault();
     setError('');
     try {
+      console.log('Attempting login to:', window.location.origin + 'https://ihma-backend.onrender.com/api/login');
       const res = await fetch('https://ihma-backend.onrender.com/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -826,6 +830,7 @@ export default function App() {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [positions, setPositions] = useState<Position[]>([]);
   const [terms, setTerms] = useState<Term[]>([]);
   const [partylists, setPartylists] = useState<Partylist[]>([]);
   const [votingRestriction, setVotingRestriction] = useState('everyone');
@@ -873,7 +878,7 @@ export default function App() {
 
   const fetchData = async () => {
     try {
-      const [homeRes, newsRes, offRes, candRes, memRes, termRes, partyRes, setRes, statRes, inqRes, sugRes] = await Promise.all([
+      const [homeRes, newsRes, offRes, candRes, memRes, termRes, partyRes, setRes, statRes, inqRes, sugRes, posRes] = await Promise.all([
         fetch('https://ihma-backend.onrender.com/api/home-content'),
         fetch('https://ihma-backend.onrender.com/api/news'),
         fetch('https://ihma-backend.onrender.com/api/officers'),
@@ -884,7 +889,8 @@ export default function App() {
         fetch('https://ihma-backend.onrender.com/api/settings'),
         fetch('https://ihma-backend.onrender.com/api/voting-stats'),
         fetch('https://ihma-backend.onrender.com/api/inquiries'),
-        fetch('https://ihma-backend.onrender.com/api/suggestions')
+        fetch('https://ihma-backend.onrender.com/api/suggestions'),
+        fetch('https://ihma-backend.onrender.com/api/positions')
       ]);
 
       const checkRes = async (res: Response, name: string) => {
@@ -896,7 +902,7 @@ export default function App() {
         return res.json();
       };
 
-      const [homeData, newsData, offData, candData, memData, termData, partyData, setData, statData, inqData, sugData] = await Promise.all([
+      const [homeData, newsData, offData, candData, memData, termData, partyData, setData, statData, inqData, sugData, posData] = await Promise.all([
         checkRes(homeRes, 'home'),
         checkRes(newsRes, 'news'),
         checkRes(offRes, 'officers'),
@@ -907,7 +913,8 @@ export default function App() {
         checkRes(setRes, 'settings'),
         checkRes(statRes, 'stats'),
         checkRes(inqRes, 'inquiries'),
-        checkRes(sugRes, 'suggestions')
+        checkRes(sugRes, 'suggestions'),
+        checkRes(posRes, 'positions')
       ]);
 
       setHomeContent(homeData);
@@ -922,6 +929,7 @@ export default function App() {
       setStats(statData);
       setInquiries(inqData);
       setSuggestions(sugData);
+      setPositions(posData);
     } catch (err) {
       console.error('Error fetching data:', err);
     }
@@ -1274,6 +1282,7 @@ export default function App() {
                       onDelete={(id) => handleDelete('candidates', id)}
                       onZoom={setZoomedImage}
                       onEdit={setEditingCandidate}
+                      positions={positions}
                     />
                   )}
                 </div>
@@ -1302,6 +1311,7 @@ export default function App() {
                   onZoom={setZoomedImage}
                   editingCandidate={editingCandidate}
                   setEditingCandidate={setEditingCandidate}
+                  positions={positions}
                 />
               )}
             </motion.div>
@@ -1474,7 +1484,7 @@ const HomeManager = ({ content, onUpdate }: { content: HomeContent[], onUpdate: 
   );
 };
 
-const VotingForm = ({ candidates, user, restriction, onVote, isAdmin, partylists, onDelete, onZoom, onEdit }: { candidates: Candidate[], user: Student | null, restriction: string, onVote: () => void, isAdmin: boolean, partylists: Partylist[], onDelete?: (id: number) => void, onZoom?: (url: string) => void, onEdit?: (c: Candidate) => void }) => {
+const VotingForm = ({ candidates, user, restriction, onVote, isAdmin, partylists, onDelete, onZoom, onEdit, positions }: { candidates: Candidate[], user: Student | null, restriction: string, onVote: () => void, isAdmin: boolean, partylists: Partylist[], onDelete?: (id: number) => void, onZoom?: (url: string) => void, onEdit?: (c: Candidate) => void, positions: Position[] }) => {
   const [selectedVotes, setSelectedVotes] = useState<Record<string, number[]>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -1503,7 +1513,7 @@ const VotingForm = ({ candidates, user, restriction, onVote, isAdmin, partylists
     await fetch('https://ihma-backend.onrender.com/api/vote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ student_number: user?.id, votes })
+      body: JSON.stringify({ student_id: user?.id, votes })
     });
     onVote();
     setSubmitting(false);
@@ -1539,7 +1549,12 @@ const VotingForm = ({ candidates, user, restriction, onVote, isAdmin, partylists
         categories.map(cat => {
           const catCandidates = eligibleCandidates.filter(c => c.category === cat);
           if (catCandidates.length === 0) return null;
-          const positions = Array.from(new Set(catCandidates.map(c => c.position)));
+          const catPositions = Array.from(new Set(catCandidates.map(c => c.position)))
+            .sort((a, b) => {
+              const posA = positions.find(p => p.name === a);
+              const posB = positions.find(p => p.name === b);
+              return (posA?.order_index || 0) - (posB?.order_index || 0);
+            });
 
           return (
             <div key={cat} className="space-y-8">
@@ -1548,7 +1563,7 @@ const VotingForm = ({ candidates, user, restriction, onVote, isAdmin, partylists
                 <div className="h-1 w-12 bg-red-600 mx-auto mt-2 rounded-full" />
               </div>
               
-              {positions.map(pos => {
+              {catPositions.map(pos => {
                 const isSenator = pos.toLowerCase().includes('senator');
                 const maxVotes = isSenator ? 2 : 1;
                 const posCandidates = catCandidates.filter(c => c.position === pos);
@@ -1718,7 +1733,8 @@ const AdminPanel = ({
   suggestions,
   onZoom,
   editingCandidate,
-  setEditingCandidate
+  setEditingCandidate,
+  positions
 }: { 
   onUpdate: () => void, 
   logos: any, 
@@ -1736,7 +1752,8 @@ const AdminPanel = ({
   suggestions: Suggestion[],
   onZoom?: (url: string) => void,
   editingCandidate: Candidate | null,
-  setEditingCandidate: (c: Candidate | null) => void
+  setEditingCandidate: (c: Candidate | null) => void,
+  positions: Position[]
 }) => {
   const [activeSubTab, setActiveSubTab] = useState('news');
   const [showResultPresenter, setShowResultPresenter] = useState(false);
@@ -1832,7 +1849,13 @@ const AdminPanel = ({
                     </div>
                     
                     <div className="space-y-10">
-                      {Array.from(new Set(stats.results.map((r: any) => r.position))).map((pos: any) => {
+                      {Array.from(new Set(stats.results.map((r: any) => r.position)))
+                        .sort((a: any, b: any) => {
+                          const posA = positions.find(p => p.name === a);
+                          const posB = positions.find(p => p.name === b);
+                          return (posA?.order_index || 0) - (posB?.order_index || 0);
+                        })
+                        .map((pos: any) => {
                         const candidates = stats.results.filter((r: any) => r.position === pos).sort((a: any, b: any) => b.votes - a.votes);
                         const winner = candidates[0];
                         return (
@@ -1903,7 +1926,7 @@ const AdminPanel = ({
                 <div className="mb-12">
                   <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6">Turnout by Grade Level</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                    {[3,4,5,6,7,8,9,10,11,12].map(grade => {
+                    {[7,8,9,10,11,12].map(grade => {
                       const gradeVoters = stats.voters.filter((v: any) => v.year === `Grade ${grade}`);
                       const gradeVoted = gradeVoters.filter((v: any) => v.has_voted).length;
                       const total = gradeVoters.length;
@@ -1919,7 +1942,13 @@ const AdminPanel = ({
                   </div>
                 </div>
                 <div className="space-y-12">
-                  {Array.from(new Set(stats.results.map((r: any) => r.position))).map((pos: any) => (
+                  {Array.from(new Set(stats.results.map((r: any) => r.position)))
+                    .sort((a: any, b: any) => {
+                      const posA = positions.find(p => p.name === a);
+                      const posB = positions.find(p => p.name === b);
+                      return (posA?.order_index || 0) - (posB?.order_index || 0);
+                    })
+                    .map((pos: any) => (
                     <div key={pos} className="space-y-6">
                       <h4 className="text-lg font-black text-slate-800 border-b border-slate-50 pb-2 tracking-tight">{pos}</h4>
                       <div className="space-y-4">
@@ -1979,7 +2008,7 @@ const AdminPanel = ({
                       className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-blue-100"
                     >
                       <option value="All">All Years</option>
-                      {[3,4,5,6,7,8,9,10,11,12].map(y => <option key={y} value={`Grade ${y}`}>Grade {y}</option>)}
+                      {[7,8,9,10,11,12].map(y => <option key={y} value={`Grade ${y}`}>Grade {y}</option>)}
                     </select>
                     <select 
                       value={sectionFilter} 
@@ -2019,7 +2048,7 @@ const AdminPanel = ({
                   <table className="w-full text-left">
                     <thead>
                       <tr className="text-xs font-black uppercase text-slate-400 tracking-widest border-b border-slate-100">
-                        <th className="pb-6">Student Number</th>
+                        <th className="pb-6">Student ID (Password)</th>
                         <th className="pb-6">Name</th>
                         <th className="pb-6">Year & Section</th>
                         <th className="pb-6">Status</th>
@@ -2561,15 +2590,22 @@ const PositionManager = ({ onUpdate }: { onUpdate: () => void }) => {
   const [name, setName] = useState('');
   const [category, setCategory] = useState('Executive');
 
-  const fetchPositions = () => fetch('https://ihma-backend.onrender.com/api/positions').then(res => res.json()).then(setPositions);
+  const fetchPositions = () => fetch('https://ihma-backend.onrender.com/api/positions').then(res => res.json()).then(data => {
+    if (Array.isArray(data)) {
+      setPositions(data);
+    } else {
+      setPositions([]);
+    }
+  });
   useEffect(() => { fetchPositions(); }, []);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+    const maxOrder = positions.length > 0 ? Math.max(...positions.map(p => p.order_index)) : 0;
     await fetch('https://ihma-backend.onrender.com/api/positions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, category })
+      body: JSON.stringify({ name, category, order_index: maxOrder + 1 })
     });
     setName(''); fetchPositions(); onUpdate();
   };
@@ -2582,6 +2618,36 @@ const PositionManager = ({ onUpdate }: { onUpdate: () => void }) => {
     } else {
       fetchPositions(); onUpdate();
     }
+  };
+
+  const handleMove = async (id: number, direction: 'up' | 'down') => {
+    const currentIndex = positions.findIndex(p => p.id === id);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= positions.length) return;
+
+    const currentPos = positions[currentIndex];
+    const otherPos = positions[newIndex];
+
+    // Swap order_index
+    const tempOrder = currentPos.order_index;
+    
+    await Promise.all([
+      fetch(`https://ihma-backend.onrender.com/api/positions/${currentPos.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_index: otherPos.order_index })
+      }),
+      fetch(`https://ihma-backend.onrender.com/api/positions/${otherPos.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_index: tempOrder })
+      })
+    ]);
+
+    fetchPositions();
+    onUpdate();
   };
 
   return (
@@ -2605,9 +2671,27 @@ const PositionManager = ({ onUpdate }: { onUpdate: () => void }) => {
           <div key={cat} className="space-y-4">
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] ml-1">{cat}</p>
             <div className="space-y-3">
-              {positions.filter(p => p.category === cat).map(p => (
+              {positions.filter(p => p.category === cat).sort((a, b) => a.order_index - b.order_index).map((p, idx, filtered) => (
                 <div key={p.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-50">
-                  <span className="text-sm font-black text-slate-700 tracking-tight">{p.name}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col gap-1">
+                      <button 
+                        disabled={idx === 0}
+                        onClick={() => handleMove(p.id, 'up')}
+                        className="text-slate-400 hover:text-blue-600 disabled:opacity-30 transition-all"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button 
+                        disabled={idx === filtered.length - 1}
+                        onClick={() => handleMove(p.id, 'down')}
+                        className="text-slate-400 hover:text-blue-600 disabled:opacity-30 transition-all"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <span className="text-sm font-black text-slate-700 tracking-tight">{p.name}</span>
+                  </div>
                   <button onClick={() => handleDelete(p.id)} className="text-red-300 hover:text-red-500 transition-all"><XCircle className="w-5 h-5" /></button>
                 </div>
               ))}
