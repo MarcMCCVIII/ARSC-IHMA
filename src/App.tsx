@@ -189,7 +189,7 @@ const ContactForm = () => {
     e.preventDefault();
     setStatus('loading');
     try {
-      const res = await fetch('/api/inquiries', {
+      const res = await fetch('https://ihma-backend.onrender.com/api/inquiries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -263,7 +263,7 @@ const SuggestionsView = ({ studentId }: { studentId?: number }) => {
     e.preventDefault();
     setStatus('loading');
     try {
-      const res = await fetch('/api/suggestions', {
+      const res = await fetch('https://ihma-backend.onrender.com/api/suggestions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, student_id: studentId })
@@ -530,8 +530,8 @@ const Login = ({ onLogin, logos }: { onLogin: (role: 'admin' | 'student', data?:
     e.preventDefault();
     setError('');
     try {
-      console.log('Attempting login to:', window.location.origin + '/api/login');
-      const res = await fetch('/api/login', {
+      console.log('Attempting login to:', window.location.origin + 'https://ihma-backend.onrender.com/api/login');
+      const res = await fetch('https://ihma-backend.onrender.com/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password, isAdmin })
@@ -676,14 +676,14 @@ const ProfileSetup = ({ student, onComplete }: { student: Student, onComplete: (
   const [availableSections, setAvailableSections] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch('/api/sections')
+    fetch('https://ihma-backend.onrender.com/api/sections')
       .then(res => res.json())
       .then(data => setAvailableSections(data));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await fetch('/api/students/update', {
+    await fetch('https://ihma-backend.onrender.com/api/students/update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: student.id, name, year, section })
@@ -773,12 +773,12 @@ const AddStudent = ({ onComplete }: { onComplete: () => void }) => {
   const [sections, setSections] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch('/api/sections').then(res => res.json()).then(setSections);
+    fetch('https://ihma-backend.onrender.com/api/sections').then(res => res.json()).then(setSections);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch('/api/students', {
+    const res = await fetch('https://ihma-backend.onrender.com/api/students', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -850,7 +850,7 @@ export default function App() {
 
   useEffect(() => {
     // Fetch logos and settings immediately
-    fetch('/api/settings')
+    fetch('https://ihma-backend.onrender.com/api/settings')
       .then(async res => {
         if (!res.ok) {
           const text = await res.text();
@@ -879,18 +879,18 @@ export default function App() {
   const fetchData = async () => {
     try {
       const [homeRes, newsRes, offRes, candRes, memRes, termRes, partyRes, setRes, statRes, inqRes, sugRes, posRes] = await Promise.all([
-        fetch('/api/home-content'),
-        fetch('/api/news'),
-        fetch('/api/officers'),
-        fetch('/api/candidates'),
-        fetch('/api/memories'),
-        fetch('/api/terms'),
-        fetch('/api/partylists'),
-        fetch('/api/settings'),
-        fetch('/api/voting-stats'),
-        fetch('/api/inquiries'),
-        fetch('/api/suggestions'),
-        fetch('/api/positions')
+        fetch('https://ihma-backend.onrender.com/api/home-content'),
+        fetch('https://ihma-backend.onrender.com/api/news'),
+        fetch('https://ihma-backend.onrender.com/api/officers'),
+        fetch('https://ihma-backend.onrender.com/api/candidates'),
+        fetch('https://ihma-backend.onrender.com/api/memories'),
+        fetch('https://ihma-backend.onrender.com/api/terms'),
+        fetch('https://ihma-backend.onrender.com/api/partylists'),
+        fetch('https://ihma-backend.onrender.com/api/settings'),
+        fetch('https://ihma-backend.onrender.com/api/voting-stats'),
+        fetch('https://ihma-backend.onrender.com/api/inquiries'),
+        fetch('https://ihma-backend.onrender.com/api/suggestions'),
+        fetch('https://ihma-backend.onrender.com/api/positions')
       ]);
 
       const checkRes = async (res: Response, name: string) => {
@@ -937,7 +937,7 @@ export default function App() {
 
   const handleDelete = async (type: 'news' | 'officers' | 'memories' | 'candidates', id: number) => {
     if (!confirm('Are you sure you want to delete this?')) return;
-    await fetch(`/api/${type}/${id}`, { method: 'DELETE' });
+    await fetch(`https://ihma-backend.onrender.com/api/${type}/${id}`, { method: 'DELETE' });
     fetchData();
   };
 
@@ -1400,7 +1400,7 @@ const HomeManager = ({ content, onUpdate }: { content: HomeContent[], onUpdate: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const method = editing?.id ? 'PUT' : 'POST';
-    const url = editing?.id ? `/api/home-content/${editing.id}` : '/api/home-content';
+    const url = editing?.id ? `https://ihma-backend.onrender.com/api/home-content/${editing.id}` : 'https://ihma-backend.onrender.com/api/home-content';
     await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
@@ -1439,7 +1439,7 @@ const HomeManager = ({ content, onUpdate }: { content: HomeContent[], onUpdate: 
               <button 
                 onClick={async () => {
                   if (confirm('Delete this section?')) {
-                    await fetch(`/api/home-content/${section.id}`, { method: 'DELETE' });
+                    await fetch(`https://ihma-backend.onrender.com/api/home-content/${section.id}`, { method: 'DELETE' });
                     onUpdate();
                   }
                 }}
@@ -1510,7 +1510,7 @@ const VotingForm = ({ candidates, user, restriction, onVote, isAdmin, partylists
         }
       });
     });
-    await fetch('/api/vote', {
+    await fetch('https://ihma-backend.onrender.com/api/vote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ student_id: user?.id, votes })
@@ -1766,7 +1766,7 @@ const AdminPanel = ({
     const formData = new FormData();
     formData.append('logo', file);
     formData.append('key', key);
-    await fetch('/api/settings/logo', { method: 'POST', body: formData });
+    await fetch('https://ihma-backend.onrender.com/api/settings/logo', { method: 'POST', body: formData });
     onUpdate();
   };
 
@@ -1775,7 +1775,7 @@ const AdminPanel = ({
     if (!file) return;
     const formData = new FormData();
     formData.append('file', file);
-    await fetch('/api/upload-students', { method: 'POST', body: formData });
+    await fetch('https://ihma-backend.onrender.com/api/upload-students', { method: 'POST', body: formData });
     onUpdate();
     alert("Student database updated!");
   };
@@ -2024,7 +2024,7 @@ const AdminPanel = ({
                     <button 
                       onClick={async () => {
                         if (confirm('Are you sure you want to reset ALL votes? This cannot be undone.')) {
-                          await fetch('/api/students/reset-all-votes', { method: 'POST' });
+                          await fetch('https://ihma-backend.onrender.com/api/students/reset-all-votes', { method: 'POST' });
                           onUpdate();
                         }
                       }}
@@ -2035,7 +2035,7 @@ const AdminPanel = ({
                     <button 
                       onClick={async () => {
                         if (confirm('Are you sure you want to CLEAR ALL students? This will delete all student records and their votes. This cannot be undone.')) {
-                          await fetch('/api/students/clear-all', { method: 'POST' });
+                          await fetch('https://ihma-backend.onrender.com/api/students/clear-all', { method: 'POST' });
                           onUpdate();
                         }
                       }}
@@ -2077,7 +2077,7 @@ const AdminPanel = ({
                                 <button 
                                   onClick={async () => {
                                     if (confirm(`Reset vote for ${v.name || 'this student'}?`)) {
-                                      await fetch(`/api/students/${v.id}/reset-vote`, { method: 'POST' });
+                                      await fetch(`https://ihma-backend.onrender.com/api/students/${v.id}/reset-vote`, { method: 'POST' });
                                       onUpdate();
                                     }
                                   }}
@@ -2090,7 +2090,7 @@ const AdminPanel = ({
                               <button 
                                 onClick={async () => {
                                   if (confirm(`Delete student ${v.name || 'this student'}?`)) {
-                                    await fetch(`/api/students/${v.id}`, { method: 'DELETE' });
+                                    await fetch(`https://ihma-backend.onrender.com/api/students/${v.id}`, { method: 'DELETE' });
                                     onUpdate();
                                   }
                                 }}
@@ -2126,7 +2126,7 @@ const AdminPanel = ({
                     <button 
                       onClick={async () => {
                         if (confirm('Delete this inquiry?')) {
-                          await fetch(`/api/inquiries/${inq.id}`, { method: 'DELETE' });
+                          await fetch(`https://ihma-backend.onrender.com/api/inquiries/${inq.id}`, { method: 'DELETE' });
                           fetchData();
                         }
                       }}
@@ -2169,7 +2169,7 @@ const AdminPanel = ({
                     <button 
                       onClick={async () => {
                         if (confirm('Delete this suggestion?')) {
-                          await fetch(`/api/suggestions/${sug.id}`, { method: 'DELETE' });
+                          await fetch(`https://ihma-backend.onrender.com/api/suggestions/${sug.id}`, { method: 'DELETE' });
                           fetchData();
                         }
                       }}
@@ -2207,7 +2207,7 @@ const AdminPanel = ({
                     <button 
                       onClick={async () => {
                         if (confirm('Delete Logo 1?')) {
-                          await fetch('/api/settings/logo/logo1', { method: 'DELETE' });
+                          await fetch('https://ihma-backend.onrender.com/api/settings/logo/logo1', { method: 'DELETE' });
                           onUpdate();
                         }
                       }}
@@ -2236,7 +2236,7 @@ const AdminPanel = ({
                     <button 
                       onClick={async () => {
                         if (confirm('Delete Logo 2?')) {
-                          await fetch('/api/settings/logo/logo2', { method: 'DELETE' });
+                          await fetch('https://ihma-backend.onrender.com/api/settings/logo/logo2', { method: 'DELETE' });
                           onUpdate();
                         }
                       }}
@@ -2285,7 +2285,7 @@ const AddNews = ({ onComplete, initialData }: { onComplete: () => void, initialD
     formData.append('date', date);
     if (image) formData.append('image', image);
     
-    const url = initialData?.id ? `/api/news/${initialData.id}` : '/api/news';
+    const url = initialData?.id ? `https://ihma-backend.onrender.com/api/news/${initialData.id}` : 'https://ihma-backend.onrender.com/api/news';
     const method = initialData?.id ? 'PUT' : 'POST';
     
     const res = await fetch(url, { method, body: formData });
@@ -2320,7 +2320,7 @@ const AddOfficer = ({ onComplete, initialData }: { onComplete: () => void, initi
   const [positions, setPositions] = useState<Position[]>([]);
 
   useEffect(() => {
-    fetch('/api/positions').then(res => res.json()).then(setPositions);
+    fetch('https://ihma-backend.onrender.com/api/positions').then(res => res.json()).then(setPositions);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -2332,7 +2332,7 @@ const AddOfficer = ({ onComplete, initialData }: { onComplete: () => void, initi
     formData.append('year', year);
     if (image) formData.append('image', image);
     
-    const url = initialData?.id ? `/api/officers/${initialData.id}` : '/api/officers';
+    const url = initialData?.id ? `https://ihma-backend.onrender.com/api/officers/${initialData.id}` : 'https://ihma-backend.onrender.com/api/officers';
     const method = initialData?.id ? 'PUT' : 'POST';
     
     const res = await fetch(url, { method, body: formData });
@@ -2389,9 +2389,9 @@ const CandidateForm = ({ onComplete, initialData }: { onComplete: () => void, in
   const [positions, setPositions] = useState<Position[]>([]);
 
   useEffect(() => {
-    fetch('/api/terms').then(res => res.json()).then(setTerms);
-    fetch('/api/partylists').then(res => res.json()).then(setPartylists);
-    fetch('/api/positions').then(res => res.json()).then(setPositions);
+    fetch('https://ihma-backend.onrender.com/api/terms').then(res => res.json()).then(setTerms);
+    fetch('https://ihma-backend.onrender.com/api/partylists').then(res => res.json()).then(setPartylists);
+    fetch('https://ihma-backend.onrender.com/api/positions').then(res => res.json()).then(setPositions);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -2406,7 +2406,7 @@ const CandidateForm = ({ onComplete, initialData }: { onComplete: () => void, in
     formData.append('voting_restriction', votingRestriction.length > 0 ? votingRestriction.join(',') : 'everyone');
     if (image) formData.append('image', image);
 
-    const url = initialData?.id ? `/api/candidates/${initialData.id}` : '/api/candidates';
+    const url = initialData?.id ? `https://ihma-backend.onrender.com/api/candidates/${initialData.id}` : 'https://ihma-backend.onrender.com/api/candidates';
     const method = initialData?.id ? 'PUT' : 'POST';
 
     await fetch(url, { 
@@ -2508,7 +2508,7 @@ const AddMemory = ({ onComplete, initialData }: { onComplete: () => void, initia
     formData.append('batch', batch);
     if (image) formData.append('image', image);
     
-    const url = initialData?.id ? `/api/memories/${initialData.id}` : '/api/memories';
+    const url = initialData?.id ? `https://ihma-backend.onrender.com/api/memories/${initialData.id}` : 'https://ihma-backend.onrender.com/api/memories';
     const method = initialData?.id ? 'PUT' : 'POST';
     
     const res = await fetch(url, { method, body: formData });
@@ -2537,12 +2537,12 @@ const TermManager = ({ onUpdate }: { onUpdate: () => void }) => {
   const [terms, setTerms] = useState<Term[]>([]);
   const [name, setName] = useState('');
 
-  const fetchTerms = () => fetch('/api/terms').then(res => res.json()).then(setTerms);
+  const fetchTerms = () => fetch('https://ihma-backend.onrender.com/api/terms').then(res => res.json()).then(setTerms);
   useEffect(() => { fetchTerms(); }, []);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    await fetch('/api/terms', {
+    await fetch('https://ihma-backend.onrender.com/api/terms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name })
@@ -2551,12 +2551,12 @@ const TermManager = ({ onUpdate }: { onUpdate: () => void }) => {
   };
 
   const handleActivate = async (id: number) => {
-    await fetch(`/api/terms/${id}/activate`, { method: 'PUT' });
+    await fetch(`https://ihma-backend.onrender.com/api/terms/${id}/activate`, { method: 'PUT' });
     fetchTerms(); onUpdate();
   };
 
   const handleDelete = async (id: number) => {
-    await fetch(`/api/terms/${id}`, { method: 'DELETE' });
+    await fetch(`https://ihma-backend.onrender.com/api/terms/${id}`, { method: 'DELETE' });
     fetchTerms(); onUpdate();
   };
 
@@ -2591,7 +2591,7 @@ const PositionManager = ({ onUpdate }: { onUpdate: () => void }) => {
   const [name, setName] = useState('');
   const [category, setCategory] = useState('Executive');
 
-  const fetchPositions = () => fetch('/api/positions').then(res => res.json()).then(data => {
+  const fetchPositions = () => fetch('https://ihma-backend.onrender.com/api/positions').then(res => res.json()).then(data => {
     if (Array.isArray(data)) {
       setPositions(data);
     } else {
@@ -2603,7 +2603,7 @@ const PositionManager = ({ onUpdate }: { onUpdate: () => void }) => {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     const maxOrder = positions.length > 0 ? Math.max(...positions.map(p => p.order_index)) : 0;
-    await fetch('/api/positions', {
+    await fetch('https://ihma-backend.onrender.com/api/positions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, category, order_index: maxOrder + 1 })
@@ -2612,7 +2612,7 @@ const PositionManager = ({ onUpdate }: { onUpdate: () => void }) => {
   };
 
   const handleDelete = async (id: number) => {
-    const res = await fetch(`/api/positions/${id}`, { method: 'DELETE' });
+    const res = await fetch(`https://ihma-backend.onrender.com/api/positions/${id}`, { method: 'DELETE' });
     const data = await res.json();
     if (!data.success) {
       alert(data.message);
@@ -2635,12 +2635,12 @@ const PositionManager = ({ onUpdate }: { onUpdate: () => void }) => {
     const tempOrder = currentPos.order_index;
     
     await Promise.all([
-      fetch(`/api/positions/${currentPos.id}`, {
+      fetch(`https://ihma-backend.onrender.com/api/positions/${currentPos.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_index: otherPos.order_index })
       }),
-      fetch(`/api/positions/${otherPos.id}`, {
+      fetch(`https://ihma-backend.onrender.com/api/positions/${otherPos.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_index: tempOrder })
@@ -2709,7 +2709,7 @@ const PartylistManager = ({ onUpdate }: { onUpdate: () => void }) => {
   const [name, setName] = useState('');
   const [image, setImage] = useState<File | null>(null);
 
-  const fetchPartylists = () => fetch('/api/partylists').then(res => res.json()).then(setPartylists);
+  const fetchPartylists = () => fetch('https://ihma-backend.onrender.com/api/partylists').then(res => res.json()).then(setPartylists);
   useEffect(() => { fetchPartylists(); }, []);
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -2718,12 +2718,12 @@ const PartylistManager = ({ onUpdate }: { onUpdate: () => void }) => {
     formData.append('name', name);
     if (image) formData.append('platform_image', image);
     
-    await fetch('/api/partylists', { method: 'POST', body: formData });
+    await fetch('https://ihma-backend.onrender.com/api/partylists', { method: 'POST', body: formData });
     setName(''); setImage(null); fetchPartylists(); onUpdate();
   };
 
   const handleDelete = async (id: number) => {
-    await fetch(`/api/partylists/${id}`, { method: 'DELETE' });
+    await fetch(`https://ihma-backend.onrender.com/api/partylists/${id}`, { method: 'DELETE' });
     fetchPartylists(); onUpdate();
   };
 
@@ -2766,7 +2766,7 @@ const ChangePassword = () => {
     if (newPassword !== confirmPassword) return alert("Passwords do not match");
     
     setLoading(true);
-    const res = await fetch('/api/settings/change-password', {
+    const res = await fetch('https://ihma-backend.onrender.com/api/settings/change-password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ currentPassword, newPassword })
@@ -2836,25 +2836,25 @@ const SectionManager = ({ onUpdate }: { onUpdate: () => void }) => {
   const [name, setName] = useState('');
 
   useEffect(() => {
-    fetch('/api/sections').then(res => res.json()).then(setSections);
+    fetch('https://ihma-backend.onrender.com/api/sections').then(res => res.json()).then(setSections);
   }, []);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    await fetch('/api/sections', {
+    await fetch('https://ihma-backend.onrender.com/api/sections', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ year, name })
     });
     setYear(''); setName('');
-    const res = await fetch('/api/sections');
+    const res = await fetch('https://ihma-backend.onrender.com/api/sections');
     setSections(await res.json());
     onUpdate();
   };
 
   const handleDelete = async (id: number) => {
-    await fetch(`/api/sections/${id}`, { method: 'DELETE' });
-    const res = await fetch('/api/sections');
+    await fetch(`https://ihma-backend.onrender.com/api/sections/${id}`, { method: 'DELETE' });
+    const res = await fetch('https://ihma-backend.onrender.com/api/sections');
     setSections(await res.json());
     onUpdate();
   };
