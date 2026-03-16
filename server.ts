@@ -26,17 +26,16 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl || "", supabaseKey || "");
 
 async function startServer() {
-  const express = require("express");
-  const cors = require("cors");
   const app = express();
+  const PORT = 3000;
 
   app.use(cors({
-    origin: ["https://www.ihmaarsc.online"],
-    credentials: true
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
   }));
 
   app.use(express.json());
-  app.post("/api/login", (req,res)=>{
   app.use(express.urlencoded({ extended: true }));
 
   // Multer setup for temporary storage before uploading to Supabase
@@ -59,6 +58,54 @@ async function startServer() {
       .getPublicUrl(fileName);
       
     return publicUrl;
+  }
+
+  // Helper to fetch all rows from a table (handling Supabase pagination)
+  async function fetchAll(table: string, select: string = '*', applyFilters?: (query: any) => any) {
+    let allData: any[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    
+    console.log(`Starting fetchAll for table: ${table}`);
+    
+    while (true) {
+      try {
+        let query = supabase.from(table).select(select);
+        if (applyFilters) query = applyFilters(query);
+        
+        // Use a stable sort for pagination. Try 'id' first, then 'created_at', then 'student_number'
+        // We'll try to be smart about it.
+        query = query.order('id', { ascending: true }).range(page * pageSize, (page + 1) * pageSize - 1);
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          // If 'id' doesn't exist, try without explicit order or with a different one
+          if (error.code === '42703') { // Undefined column
+            console.warn(`Column 'id' not found in ${table}, trying without explicit order`);
+            const fallbackQuery = supabase.from(table).select(select);
+            if (applyFilters) query = applyFilters(fallbackQuery);
+            const { data: fallbackData, error: fallbackError } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
+            if (fallbackError) throw fallbackError;
+            if (!fallbackData || fallbackData.length === 0) break;
+            allData = [...allData, ...fallbackData];
+            if (fallbackData.length < pageSize) break;
+          } else {
+            throw error;
+          }
+        } else {
+          if (!data || data.length === 0) break;
+          allData = [...allData, ...data];
+          console.log(`Fetched ${data.length} rows from ${table} (total: ${allData.length})`);
+          if (data.length < pageSize) break;
+        }
+        page++;
+      } catch (err) {
+        console.error(`Error in fetchAll for ${table}:`, err);
+        throw err;
+      }
+    }
+    return allData;
   }
 
   // Health check
@@ -396,14 +443,21 @@ async function startServer() {
 
   // Positions
   app.get("/api/positions", async (req, res) => {
-    const { data, error } = await supabase.from('positions').select('*');
+    const { data, error } = await supabase.from('positions').select('*').order('order_index', { ascending: true });
     if (error) return res.status(500).json({ success: false, message: error.message });
     res.json(data);
   });
 
   app.post("/api/positions", async (req, res) => {
-    const { name, category } = req.body;
-    const { error } = await supabase.from('positions').insert([{ name, category }]);
+    const { name, category, order_index } = req.body;
+    const { error } = await supabase.from('positions').insert([{ name, category, order_index: order_index || 0 }]);
+    if (error) return res.status(500).json({ success: false, message: error.message });
+    res.json({ success: true });
+  });
+
+  app.put("/api/positions/:id", async (req, res) => {
+    const { order_index, name, category } = req.body;
+    const { error } = await supabase.from('positions').update({ order_index, name, category }).eq('id', req.params.id);
     if (error) return res.status(500).json({ success: false, message: error.message });
     res.json({ success: true });
   });
@@ -521,24 +575,53 @@ async function startServer() {
   });
 
   app.get("/api/voting-stats", async (req, res) => {
-    const { count: totalStudents } = await supabase.from('students').select('*', { count: 'exact', head: true });
-    const { count: votedCount } = await supabase.from('students').select('*', { count: 'exact', head: true }).eq('has_voted', true);
-    
-    const { data: candidates } = await supabase.from('candidates').select('*, partylists(name)');
-    const { data: votes } = await supabase.from('votes').select('candidate_id');
-    
-    const results = candidates?.map(c => {
-      const count = votes?.filter(v => v.candidate_id === c.id).length || 0;
-      return { 
-        ...c, 
-        votes: count,
-        partylist_name: c.partylists?.name || 'Independent'
-      };
-    }) || [];
-    
-    const { data: voters } = await supabase.from('students').select('id, name, year, section, has_voted, student_number');
-    
-    res.json({ totalStudents, votedCount, results, voters });
+    try {
+      console.log("Fetching voting stats...");
+      // Get active term
+      const { data: activeTerm } = await supabase.from('terms').select('id').eq('is_active', true).maybeSingle();
+      
+      const { count: totalStudents } = await supabase.from('students').select('*', { count: 'exact', head: true });
+      const { count: votedCount } = await supabase.from('students').select('*', { count: 'exact', head: true }).eq('has_voted', true);
+      
+      // Fetch candidates
+      const candidates = await fetchAll('candidates', '*, partylists(name)', (q) => {
+        if (activeTerm) return q.eq('term_id', activeTerm.id);
+        return q;
+      });
+      
+      // Fetch ALL votes to ensure we don't miss anything
+      // We'll filter them in memory to match the candidates
+      const votes = await fetchAll('votes', 'candidate_id');
+      
+      console.log(`Calculating results for ${candidates.length} candidates using ${votes.length} total votes`);
+      if (candidates.length > 0 && votes.length > 0) {
+        console.log("Sample Candidate ID:", candidates[0].id, typeof candidates[0].id);
+        console.log("Sample Vote Candidate ID:", votes[0].candidate_id, typeof votes[0].candidate_id);
+      }
+      
+      const results = candidates.map(c => {
+        // Use loose equality or cast to string to ensure match
+        const count = votes.filter(v => String(v.candidate_id) === String(c.id)).length || 0;
+        return { 
+          ...c, 
+          votes: count,
+          partylist_name: c.partylists?.name || 'Independent'
+        };
+      });
+      
+      // Fetch all students to get accurate turnout by grade level
+      const voters = await fetchAll('students', 'id, name, year, section, has_voted, student_number');
+      
+      res.json({ 
+        totalStudents: totalStudents || 0, 
+        votedCount: votedCount || 0, 
+        results, 
+        voters 
+      });
+    } catch (error: any) {
+      console.error("Error in voting-stats:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
   });
 
   // Settings
