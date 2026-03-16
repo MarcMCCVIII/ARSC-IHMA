@@ -68,28 +68,54 @@ async function startServer() {
     
     console.log(`Starting fetchAll for table: ${table}`);
     
+    // Try these columns for ordering in order of preference
+    const orderColumns = ['id', 'created_at', 'student_number', 'name'];
+    let workingOrderColumn: string | null = null;
+
     while (true) {
       try {
         let query = supabase.from(table).select(select);
         if (applyFilters) query = applyFilters(query);
         
-        // Use a stable sort for pagination. Try 'id' first, then 'created_at', then 'student_number'
-        // We'll try to be smart about it.
-        query = query.order('id', { ascending: true }).range(page * pageSize, (page + 1) * pageSize - 1);
-        
-        const { data, error } = await query;
+        if (workingOrderColumn) {
+          query = query.order(workingOrderColumn, { ascending: true });
+        } else {
+          // First attempt, try 'id'
+          query = query.order('id', { ascending: true });
+        }
+
+        const { data, error } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
         
         if (error) {
-          // If 'id' doesn't exist, try without explicit order or with a different one
-          if (error.code === '42703') { // Undefined column
-            console.warn(`Column 'id' not found in ${table}, trying without explicit order`);
-            const fallbackQuery = supabase.from(table).select(select);
-            if (applyFilters) query = applyFilters(fallbackQuery);
-            const { data: fallbackData, error: fallbackError } = await query.range(page * pageSize, (page + 1) * pageSize - 1);
-            if (fallbackError) throw fallbackError;
-            if (!fallbackData || fallbackData.length === 0) break;
-            allData = [...allData, ...fallbackData];
-            if (fallbackData.length < pageSize) break;
+          // If 'id' doesn't exist (code 42703) and we haven't found a working column yet
+          if (error.code === '42703' && !workingOrderColumn) {
+            console.warn(`Column 'id' not found in ${table}, searching for alternative order column...`);
+            let found = false;
+            for (const col of orderColumns.slice(1)) {
+              let testQuery = supabase.from(table).select(select);
+              if (applyFilters) testQuery = applyFilters(testQuery);
+              const { error: testError } = await testQuery.order(col, { ascending: true }).limit(1);
+              if (!testError) {
+                workingOrderColumn = col;
+                console.log(`Using '${col}' for ordering ${table}`);
+                found = true;
+                break;
+              }
+            }
+            
+            if (!found) {
+              console.warn(`No suitable order column found for ${table}, fetching without explicit order`);
+              let finalQuery = supabase.from(table).select(select);
+              if (applyFilters) finalQuery = applyFilters(finalQuery);
+              const { data: finalData, error: finalError } = await finalQuery.range(page * pageSize, (page + 1) * pageSize - 1);
+              if (finalError) throw finalError;
+              if (!finalData || finalData.length === 0) break;
+              allData = [...allData, ...finalData];
+              if (finalData.length < pageSize) break;
+            } else {
+              // Retry with the new workingOrderColumn
+              continue; 
+            }
           } else {
             throw error;
           }
@@ -102,7 +128,7 @@ async function startServer() {
         page++;
       } catch (err) {
         console.error(`Error in fetchAll for ${table}:`, err);
-        throw err;
+        break;
       }
     }
     return allData;
@@ -580,28 +606,32 @@ async function startServer() {
       // Get active term
       const { data: activeTerm } = await supabase.from('terms').select('id').eq('is_active', true).maybeSingle();
       
-      const { count: totalStudents } = await supabase.from('students').select('*', { count: 'exact', head: true });
-      const { count: votedCount } = await supabase.from('students').select('*', { count: 'exact', head: true }).eq('has_voted', true);
-      
-      // Fetch candidates
+      // Fetch candidates for active term
       const candidates = await fetchAll('candidates', '*, partylists(name)', (q) => {
         if (activeTerm) return q.eq('term_id', activeTerm.id);
         return q;
       });
       
-      // Fetch ALL votes to ensure we don't miss anything
-      // We'll filter them in memory to match the candidates
-      const votes = await fetchAll('votes', 'candidate_id');
+      const candidateIds = candidates.map(c => c.id);
       
-      console.log(`Calculating results for ${candidates.length} candidates using ${votes.length} total votes`);
-      if (candidates.length > 0 && votes.length > 0) {
-        console.log("Sample Candidate ID:", candidates[0].id, typeof candidates[0].id);
-        console.log("Sample Vote Candidate ID:", votes[0].candidate_id, typeof votes[0].candidate_id);
-      }
+      // Fetch votes only for these candidates to ensure we only count current term votes
+      // We need student_id to calculate accurate turnout for the current term
+      const votes = await fetchAll('votes', 'candidate_id, student_id', (q) => {
+        if (candidateIds.length > 0) return q.in('candidate_id', candidateIds);
+        return q;
+      });
+      
+      console.log(`Calculating results for ${candidates.length} candidates using ${votes.length} relevant votes`);
+      
+      // Create a frequency map for votes to avoid O(N*M) complexity
+      const voteCounts: Record<string, number> = {};
+      votes.forEach(v => {
+        const cid = String(v.candidate_id);
+        voteCounts[cid] = (voteCounts[cid] || 0) + 1;
+      });
       
       const results = candidates.map(c => {
-        // Use loose equality or cast to string to ensure match
-        const count = votes.filter(v => String(v.candidate_id) === String(c.id)).length || 0;
+        const count = voteCounts[String(c.id)] || 0;
         return { 
           ...c, 
           votes: count,
@@ -609,12 +639,18 @@ async function startServer() {
         };
       });
       
+      // Calculate turnout based on unique students who voted for these candidates
+      const uniqueVotersInTerm = new Set(votes.map(v => v.student_id)).size;
+      
       // Fetch all students to get accurate turnout by grade level
       const voters = await fetchAll('students', 'id, name, year, section, has_voted, student_number');
       
+      // Total students is still the total in the DB (or we could filter if we had a way)
+      const { count: totalStudentsCount } = await supabase.from('students').select('*', { count: 'exact', head: true });
+      
       res.json({ 
-        totalStudents: totalStudents || 0, 
-        votedCount: votedCount || 0, 
+        totalStudents: totalStudentsCount || 0, 
+        votedCount: uniqueVotersInTerm, // Use the term-specific voter count
         results, 
         voters 
       });
